@@ -20,7 +20,9 @@ class CommunityClient(AminoHttpClient):
         loop: Optional[AbstractEventLoop] = None,
         session: Optional[ClientSession] = None, 
         info: Optional[Community] = None,
-        settings: Optional[dict] = None
+        settings: Optional[dict] = None,
+        proxy: Optional[str] = None,
+        proxy_auth: Optional[str] = None
     ) -> None:
         self._session: ClientSession = session or ClientSession(
             timeout=ClientTimeout(60), json_serialize=dumps)
@@ -28,6 +30,9 @@ class CommunityClient(AminoHttpClient):
         
         self.comId = comId
         self.headers = settings or self.headers
+
+        self.proxy: Optional[str] = proxy
+        self.proxy_auth: Optional[str] = proxy_auth
         
         self.profile: UserProfile = UserProfile(**{})
         self.info: Community = info or Community(**{})

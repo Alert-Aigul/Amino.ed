@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import ClassVar, Optional
 from aiohttp import ClientSession
 from aiohttp.client import ClientTimeout
 from ujson import dumps
@@ -8,8 +8,11 @@ from .utils.exceptions import CheckException
 
 
 class AminoHttpClient:
-    _session: ClientSession = None
-    api: str = "https://service.narvii.com/api/v1"
+    proxy: Optional[str] = None
+    proxy_auth: Optional[str] = None
+    _session: Optional[ClientSession] = None
+    api: ClassVar = "https://service.narvii.com/api/v1"
+    
 
     headers = {
         "Accept-Language": "en-En",
@@ -64,7 +67,8 @@ class AminoHttpClient:
         headers["NDC-MSG-SIG"] = await generate_signature(dumps(json) if json else data)
 
         async with self._session.post(f"{self.api}{url}", 
-                json=json, data=data, headers=headers) as response:
+                json=json, data=data, headers=headers,
+                proxy=self.proxy, proxy_auth=self.proxy_auth) as response:
 
             if (json := await response.json())["api:statuscode"] != 0:
                 return CheckException(json)
@@ -72,7 +76,7 @@ class AminoHttpClient:
 
     async def get(self, url: str):
         async with self._session.get(f"{self.api}{url}",
-                headers=self.headers) as response:
+                headers=self.headers, proxy=self.proxy, proxy_auth=self.proxy_auth) as response:
 
             if (json := await response.json())["api:statuscode"] != 0:
                 return CheckException(json)
@@ -80,14 +84,15 @@ class AminoHttpClient:
     
     async def delete(self, url: str):
         async with self._session.delete(f"{self.api}{url}",
-                headers=self.headers) as response:
+                headers=self.headers, proxy=self.proxy, proxy_auth=self.proxy_auth) as response:
 
             if (json := await response.json())["api:statuscode"] != 0:
                 return CheckException(json)
             return response
     
     async def post_request(self, url: str, json: dict = None, data: str = None, headers: dict = None):
-        return await self._session.post(url, json=json, data=data, headers=headers)
+        return await self._session.post(url, json=json, data=data,
+            headers=headers,proxy=self.proxy, proxy_auth=self.proxy_auth)
 
     async def get_request(self, url: str, headers: dict = None):
-        return await self._session.get(url, headers=headers)
+        return await self._session.get(url, headers=headers, proxy=self.proxy, proxy_auth=self.proxy_auth)

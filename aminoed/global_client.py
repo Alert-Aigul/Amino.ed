@@ -21,13 +21,21 @@ from .websocket import WebSocketClient
 
 
 class Client(AminoHttpClient):
-    def __init__(self, loop: AbstractEventLoop = None, deviceId: str = None) -> None:
+    def __init__(self,
+        loop: Optional[AbstractEventLoop] = None,
+        deviceId: Optional[str] = None,
+        proxy: Optional[str] = None,
+        proxy_auth: Optional[str] = None
+    ) -> None:
+            
         self._session: ClientSession = ClientSession(
             timeout=ClientTimeout(60), json_serialize=dumps)
         self._loop: AbstractEventLoop = loop or get_event_loop()
 
+        self.proxy: Optional[str] = proxy
+        self.proxy_auth: Optional[str] = proxy_auth
         self.authenticated: bool = False
-        self.deviceId: str = deviceId or DEVICE_ID
+        self.deviceId: str = deviceId or generate_device_sync()
 
         self.auth: Auth = Auth(**{})
         self.account: Account = Account(**{})
@@ -73,7 +81,7 @@ class Client(AminoHttpClient):
             self.websocket.emitter.on(event, callback)
         return callback
     
-    async def get_community_client(self, comId: str = None, aminoId: str = None, 
+    async def initialize_community(self, comId: str = None, aminoId: str = None, 
             get_info: bool = True, community: Community = None) -> CommunityClient:
         if aminoId:
             comId = (await self.search_community(aminoId))[0].comId
@@ -83,7 +91,8 @@ class Client(AminoHttpClient):
         
         if not aminoId and not comId: raise NoCommunity()
 
-        return CommunityClient(comId, self._loop, self._session, community, self.headers)
+        return CommunityClient(comId, self._loop, self._session,
+                community, self.headers, self.proxy, self.proxy_auth)
     
     def run(self, email: str, password: str, sid: str = None) -> Auth:
 
@@ -237,6 +246,7 @@ class Client(AminoHttpClient):
             data["purpose"] = "reset-password"
 
         response = await self.post(f"/g/s/auth/request-security-validation", data)
+        print(response.status)
         return response.status
     
     async def activate_account(self, email: str, code: str) -> int:

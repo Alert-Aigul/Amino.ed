@@ -1,20 +1,26 @@
+import aiohttp
+import requests
+
 from time import time
+from typing import Any
 from ujson import loads
 from base64 import b64decode
 from functools import reduce
 
-from aminoed.generators import GeneratorSocket
-
-signature_generator = GeneratorSocket()
-DEVICE_ID = "42A228D23F75172D80BE59844A973B1835929C99014D4CA661366BFE4C3FE915EC3DFEFF4587FB9DB4"
+sync_session = requests.Session()
+session = aiohttp.ClientSession()
 
 
-async def generate_device() -> str:
-    return DEVICE_ID
+def generate_device_sync() -> str:
+    return sync_session.get("https://ed-generators.herokuapp.com/device").text
     
 
-async def generate_signature(data: str) -> str:
-    return await signature_generator.get(data)
+async def generate_device(data: str = None) -> str:
+    return await (await session.get("https://ed-generators.herokuapp.com/device" + f"?data={data}" if data else "")).text()
+    
+
+async def generate_signature(data: Any) -> str:
+    return await (await session.post("https://ed-generators.herokuapp.com/signature", data=data)).text()
 
 
 def get_timers(size: int) -> list[dict[str, int]]:
