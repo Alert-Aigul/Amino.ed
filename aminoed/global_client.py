@@ -94,7 +94,7 @@ class Client(AminoHttpClient):
         return CommunityClient(comId, self._loop, self._session,
                 community, self.headers, self.proxy, self.proxy_auth)
     
-    def run(self, email: str, password: str, sid: str = None) -> Auth:
+    def run(self, email: str = None, password: str = None, sid: str = None) -> Auth:
 
         if not sid:
             self._loop.run_until_complete(self.login(email, password))
@@ -168,6 +168,8 @@ class Client(AminoHttpClient):
 
         self.auth: Auth = Auth(account=self.account, auid=self.userId,
                 profile=self.profile, sid=self.sid, deviceId=self.deviceId)
+        self.websocket.auth = self.auth
+        
         return self.auth
     
     async def register(self, nickname: str, email: str, password: str, code: str) -> Auth:

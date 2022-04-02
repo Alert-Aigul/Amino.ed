@@ -1,3 +1,4 @@
+import sys
 from pydantic import BaseModel, Field
 from typing import List, Optional, Any, Union, Dict
 from datetime import datetime
@@ -560,10 +561,16 @@ class Sticker(BaseModel):
     icon:                Optional[str]
 
 
-class BaseMessage(BaseModel):
+class Message(BaseModel):
     class Extensions(BaseModel):
+        class Mention(BaseModel):
+            uid: str
+
         sticker:           Optional[Sticker]
         originalStickerId: Optional[str]
+        mentionedArray:    Optional[List[Mention]]
+        replyMessage:      Optional[Dict]
+        replyMessageId:    Optional[str]
 
     extensions:        Optional[Extensions]
     includedInSummary: Optional[bool]
@@ -575,39 +582,21 @@ class BaseMessage(BaseModel):
     content:           Optional[str]
     chatBubbleId:      Optional[str]
     clientRefId:       Optional[int]
-    chatId:            Optional[str] = Field(alias="threadId")
+    threadId:          Optional[str]
     createdTime:       Optional[datetime]
     chatBubbleVersion: Optional[int]
     type:              Optional[int]
+    uid:               Optional[str]
     mediaValue:        Optional[str]
-    base_reply:        Optional['BaseMessage']
     nextPageToken:     Optional[str]
     prevPageToken:     Optional[str]
 
     @property
-    def reply(self):
-        if self.base_reply is None:
-            self.base_reply = BaseMessage(**{})
-        return self.base_reply
+    def reply(self) -> 'Message':
+        Message: 'Message' = getattr(sys.modules[__name__], 'Message')
 
-class Message(BaseMessage):
-    def __init__(self, **data) -> None:
-        replies: List[BaseMessage] = []
-        replies.append(BaseMessage(**data))
-
-        while (val := (data.get('extensions') or {}).get("replyMessage")) is not None:
-            replies.append(BaseMessage(**data))
-            data = val if data is not None else {}
-
-        replies[-1] = BaseMessage(**replies[-1].dict())
-
-        for i in range(len(replies) - 1, 0, -1):
-            message = replies[i-1].dict()
-            replies[i - 1] = BaseMessage(**message, rep=replies[i])
-        super().__init__(**replies[0].dict())
-
-Message.update_forward_refs()
-BaseMessage.update_forward_refs()
+        return Message(**(self.extensions.replyMessage or {
+            "author": {}, "extensions": {"sticker": {}}, "chatBubble": {}}))
 
 
 class Blog(BaseModel):
