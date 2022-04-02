@@ -599,12 +599,12 @@ class Message(BaseMessage):
             replies.append(BaseMessage(**data))
             data = val if data is not None else {}
 
-        replies[-1] = BaseMessage(**replies[-1].Dict())
+        replies[-1] = BaseMessage(**replies[-1].dict())
 
         for i in range(len(replies) - 1, 0, -1):
-            message = replies[i-1].Dict(); del message["rep"]
+            message = replies[i-1].dict()
             replies[i - 1] = BaseMessage(**message, rep=replies[i])
-        super().__init__(**replies[0].Dict())
+        super().__init__(**replies[0].dict())
 
 Message.update_forward_refs()
 BaseMessage.update_forward_refs()
