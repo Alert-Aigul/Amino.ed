@@ -91,7 +91,7 @@ class Client(AminoHttpClient):
         
         if not aminoId and not comId: raise NoCommunity()
 
-        return CommunityClient(comId, self._loop, self._session,
+        return CommunityClient(comId, self._loop, None,
                 community, self.headers, self.proxy, self.proxy_auth)
     
     def run(self, email: str = None, password: str = None, sid: str = None) -> Auth:
