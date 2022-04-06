@@ -45,8 +45,8 @@ class WebSocketClient:
 
                 if recieved_data["t"] == 1000:
                     self.emitter.emit("message", Event(**recieved_data["o"]))
-                else:
-                    self.emitter.emit("event", recieved_data["o"])
+                
+                self.emitter.emit("event", recieved_data["o"])
                 
 
     async def create_connection(self) -> WSConnection:

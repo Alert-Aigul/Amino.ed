@@ -877,12 +877,12 @@ class CommunityClient(AminoHttpClient):
         response = await self.get(f"/x{self.comId}/s/chat/thread/{chatId}")
         return Thread(loads(await response.json())["thread"])
 
-    async def get_chat_messages(self, chatId: str, size: int = 25, pageToken: str = None) -> Message:
+    async def get_chat_messages(self, chatId: str, size: int = 25, pageToken: str = None) -> List[Message]:
         if not pageToken: params = f"v=2&pagingType=t&size={size}"
         else: params = f"v=2&pagingType=t&pageToken={pageToken}&size={size}"
 
         response = await self.get(f"/x{self.comId}/s/chat/thread/{chatId}/message?{params}")
-        return list(map(lambda o, p: Message(**o, **p), (data := await response.json())["messageList"], data["paging"]))
+        return list(map(lambda o: Message(**o, **data["paging"]), (data := await response.json())["messageList"]))
 
     async def get_message_info(self, chatId: str, messageId: str) -> Message:
         response = await self.get(f"/x{self.comId}/s/chat/thread/{chatId}/message/{messageId}")
@@ -940,7 +940,7 @@ class CommunityClient(AminoHttpClient):
         else: params = f"v=2&pagingType=t&pageToken={pageToken}&start={start}&size={size}"
         
         response = await self.get(f"/x{self.comId}/s/feed/blog-all?{params}")
-        return list(map(lambda o, p: Blog(**o, **p), (data := await response.json())["blogList"], data["paging"]))
+        return list(map(lambda o: Blog(**o, **data["paging"]), (data := await response.json())["blogList"]))
 
     async def get_chat_users(self, chatId: str, start: int = 0, size: int = 25) -> List[UserProfile]:
         response = await self.get(f"/x{self.comId}/s/chat/thread/{chatId}/member?start={start}&size={size}&type=default&cv=1.2")

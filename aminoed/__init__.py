@@ -2,7 +2,7 @@ __title__ = 'Amino.ed'
 __author__ = 'Alert Aigul'
 __license__ = 'MIT'
 __copyright__ = 'Copyright 2020-2022 Alert'
-__version__ = '2.3.6'
+__version__ = '2.3.7'
 
 from asyncio import get_event_loop
 from asyncio.events import AbstractEventLoop

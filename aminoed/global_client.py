@@ -82,7 +82,7 @@ class Client(AminoHttpClient):
         return callback
     
     async def initialize_community(self, comId: str = None, aminoId: str = None, 
-            get_info: bool = True, community: Community = None) -> CommunityClient:
+            get_info: bool = False, community: Community = None) -> CommunityClient:
         if aminoId:
             comId = (await self.search_community(aminoId))[0].comId
 
@@ -928,7 +928,7 @@ class Client(AminoHttpClient):
 
     async def get_link_info(self, code: str) -> Link:
         response = await self.get(f"/g/s/link-resolution?q={code}")
-        return Link(**(ext := (await response.json())["linkInfoV2"]["extensions"]), **ext["linkInfo"])
+        return Link(**(ext := (await response.json())["linkInfoV2"]["extensions"]), **ext.get("linkInfo", {}))
     
     async def get_from_id(self, objectId: str, objectType: int, comId: str = None) -> Link:
         data = {
