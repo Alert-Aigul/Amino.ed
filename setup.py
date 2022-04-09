@@ -6,7 +6,7 @@ with open("README.md", "r") as stream:
 
 setup(
     name="Amino.ed",
-    version="2.3.9",
+    version="2.3.10",
     url="https://github.com/Alert-Aigul/Amino.ed",
     download_url="https://github.com/Alert-Aigul/Amino.ed/archive/refs/heads/main.zip",
     license="MIT",

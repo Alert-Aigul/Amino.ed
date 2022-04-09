@@ -466,17 +466,17 @@ class CommunityClient(AminoHttpClient):
         }
 
         if blogId:
-            response = await self.post(f"/g/s/blog/{blogId}/tipping", data)
+            response = await self.post(f"/x{self.comId}/s/blog/{blogId}/tipping", data)
             return response.status
         
         elif chatId:
-            response = await self.post(f"/g/s/chat/thread/{chatId}/tipping", data)
+            response = await self.post(f"/x{self.comId}/s/chat/thread/{chatId}/tipping", data)
             return response.status
         
         elif objectId:
             data["objectId"] = objectId
             data["objectType"] = ObjectTypes.ITEM
-            response = await self.post(f"/g/s/tipping", data)
+            response = await self.post(f"/x{self.comId}/s/tipping", data)
             return response.status
         
         else: SpecifyType() 
