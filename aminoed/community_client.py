@@ -1454,7 +1454,7 @@ class CommunityClient(AminoHttpClient):
     
     async def get_chat_bubble(self, bubbleId: str) -> ChatBubble:
         response = await self.get(f"/x{self.comId}/s/chat/chat-bubble/{bubbleId}")
-        return ChatBubble(**(response.text)["chatBubble"])
+        return ChatBubble(**(await response.json())["chatBubble"])
 
     async def get_chat_bubble_templates(self, start: int = 0, size: int = 25) -> List[ChatBubble]:
         response = await self.get(f"/x{self.comId}/s/chat/chat-bubble/templates?start={start}&size={size}")
@@ -1462,12 +1462,12 @@ class CommunityClient(AminoHttpClient):
     
     async def generate_chat_bubble(self, bubble: BinaryIO = None, 
             templateId: str = "949156e1-cc43-49f0-b9cf-3bbbb606ad6e") -> ChatBubble:
-        response = await self.post(f"/x{self.comId}/s/chat/chat-bubble/templates/{templateId}/generate", bubble)
-        return ChatBubble(**(response.text)["chatBubble"])
+        response = await self.post(f"/x{self.comId}/s/chat/chat-bubble/templates/{templateId}/generate", data=bubble, type=FileTypes.STREAM)
+        return ChatBubble(**(await response.json())["chatBubble"])
     
     async def edit_chat_bubble(self, bubbleId: str, bubble: BinaryIO) -> ChatBubble:
-        response = await self.post(f"/x{self.comId}/s/chat/chat-bubble/{bubbleId}", bubble)
-        return ChatBubble(**(response.text)["chatBubble"])
+        response = await self.post(f"/x{self.comId}/s/chat/chat-bubble/{bubbleId}", data=bubble, type=FileTypes.STREAM)
+        return ChatBubble(**(await response.json())["chatBubble"])
 
     async def send_active_object(self, timers: List[dict], timezone: int = 0, flags: int = 0):
         data = {
