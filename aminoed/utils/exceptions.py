@@ -1,5 +1,8 @@
 # thanks Slimakoi#6422
 
+import json
+
+
 class UnsupportedService(Exception):
     """
     - **API Code** : 100
@@ -945,8 +948,38 @@ class LibraryUpdateAvailable(Exception):
         Exception.__init__(*args, **kwargs)
 
 
+class IpTomporaryBan(Exception):
+    """
+    - **API Code** : 403
+    - **API Message** : 403 Forbidden.
+    - **API String** : ``Unknown String``
+    """
+
+    def __init__(*args, **kwargs):
+        Exception.__init__(*args, **kwargs)
+
+
+class FailedSubscribeFanClub(Exception):
+    """
+    - **API Code** : 4805
+    - **API Message** : Failed to subscribe to this fan club.
+    - **API String** : ``Unknown String``
+    """
+
+    def __init__(*args, **kwargs):
+        Exception.__init__(*args, **kwargs)
+
+
 def CheckException(data):
-    api_code = data["api:statuscode"]
+    try:
+        data = json.loads(data)
+        
+        try:
+            api_code = data["api:statuscode"]
+        except:
+            raise Exception(data)
+    except json.decoder.JSONDecodeError:
+        api_code = 403
 
     if api_code == 0:
         return
@@ -1026,6 +1059,8 @@ def CheckException(data):
         raise InvalidThemepack(data)
     elif api_code == 314:
         raise InvalidVoiceNote(data)
+    elif api_code == 403:
+        raise IpTomporaryBan(data)
     elif api_code == 500 or api_code == 700 or api_code == 1600:
         raise RequestedNoLongerExists(data)
     elif api_code == 503:
@@ -1104,6 +1139,8 @@ def CheckException(data):
         raise CannotSendCoins(data)
     elif api_code == 4501:
         raise CannotSendCoins(data)
+    elif api_code == 4805:
+        raise FailedSubscribeFanClub(data)
     elif api_code == 6001:
         raise AminoIDAlreadyChanged(data)
     elif api_code == 6002:

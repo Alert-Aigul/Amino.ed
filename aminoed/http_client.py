@@ -3,7 +3,7 @@ from aiohttp import ClientSession
 from aiohttp.client import ClientTimeout
 from ujson import dumps
 
-from .utils.helpers import generate_signature
+from .utils.helpers import generate_signature, is_json
 from .utils.exceptions import CheckException
 
 
@@ -70,7 +70,7 @@ class AminoHttpClient:
                 json=json, data=data, headers=headers,
                 proxy=self.proxy, proxy_auth=self.proxy_auth) as response:
 
-            if (json := await response.json())["api:statuscode"] != 0:
+            if not is_json((json := await response.text())) or response.status != 200:
                 return CheckException(json)
             return response
 
@@ -78,7 +78,7 @@ class AminoHttpClient:
         async with self._session.get(f"{self.api}{url}",
                 headers=self.headers, proxy=self.proxy, proxy_auth=self.proxy_auth) as response:
 
-            if (json := await response.json())["api:statuscode"] != 0:
+            if not is_json((json := await response.text())) or response.status != 200:
                 return CheckException(json)
             return response
     
@@ -86,13 +86,13 @@ class AminoHttpClient:
         async with self._session.delete(f"{self.api}{url}",
                 headers=self.headers, proxy=self.proxy, proxy_auth=self.proxy_auth) as response:
 
-            if (json := await response.json())["api:statuscode"] != 0:
+            if not is_json((json := await response.text())) or response.status != 200:
                 return CheckException(json)
             return response
     
     async def post_request(self, url: str, json: dict = None, data: str = None, headers: dict = None):
         return await self._session.post(url, json=json, data=data,
-            headers=headers,proxy=self.proxy, proxy_auth=self.proxy_auth)
+            headers=headers, proxy=self.proxy, proxy_auth=self.proxy_auth)
 
     async def get_request(self, url: str, headers: dict = None):
         return await self._session.get(url, headers=headers, proxy=self.proxy, proxy_auth=self.proxy_auth)

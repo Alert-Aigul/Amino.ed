@@ -1,3 +1,4 @@
+import json
 import aiohttp
 import requests
 
@@ -38,3 +39,11 @@ def sid_to_uid(sid: str) -> str:
 
 def sid_to_ip_address(sid: str) -> str:
     return decode_sid(sid)["4"]
+
+
+def is_json(myjson) -> bool:
+    try:
+        json_object = json.loads(myjson)
+    except ValueError as e:
+        return False
+    return True
