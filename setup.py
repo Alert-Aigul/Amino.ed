@@ -1,5 +1,5 @@
 from setuptools import setup, find_packages
-from .aminoed import __version__
+from aminoed import __version__
 
 with open("README.md", "r") as stream:
     long_description = stream.read()
