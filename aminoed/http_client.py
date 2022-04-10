@@ -12,11 +12,11 @@ class AminoHttpClient:
     proxy_auth: Optional[str] = None
     _session: Optional[ClientSession] = None
     api: ClassVar = "https://service.narvii.com/api/v1"
-    
 
     headers = {
         "Accept-Language": "en-En",
-        "Content-Type"   : "application/json; charset=utf-8"
+        "Content-Type"   : "application/json; charset=utf-8",
+        "NDCDEVICEID"    : "4240460afcb124fe8e9ac55133749c7027a160df0e853211adc49848822952b6efa10f9c657c3c9665"
     }
 
     @property

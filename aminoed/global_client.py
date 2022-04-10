@@ -35,7 +35,7 @@ class Client(AminoHttpClient):
         self.proxy: Optional[str] = proxy
         self.proxy_auth: Optional[str] = proxy_auth
         self.authenticated: bool = False
-        self.deviceId: str = deviceId or generate_device_sync()
+        self.deviceId: str = deviceId or self.deviceId
 
         self.auth: Auth = Auth(**{})
         self.account: Account = Account(**{})
@@ -112,6 +112,7 @@ class Client(AminoHttpClient):
 
     async def login(self, email: str, password: str) -> Auth:
         data = {
+            "v": 2,
             "email": email,
             "clientType": 100,
             "secret": f"0 {password}",
