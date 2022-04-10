@@ -305,12 +305,12 @@ class Client(AminoHttpClient):
         response = await self.post(f"/g/s/device", data)
         return response.status
     
-    async def upload_media(self, file: BinaryIO, fileType: str) -> str:
-        response = await self.post_content(f"/g/s/media/upload", file.read(), fileType)
+    async def upload_media(self, image: bytes, fileType: str = FileTypes.IMAGE) -> str:
+        response = await self.post(f"/g/s/media/upload", None, image, fileType)
         return (await response.json())["mediaValue"]
     
-    async def upload_bubble_preview(self, file: BinaryIO) -> str:
-        response = await self.post_content(f"{self.api}/g/s/media/upload/target/chat-bubble-thumbnail", file.read(), "image/png")
+    async def upload_bubble_thumbnail(self, image: bytes) -> str:
+        response = await self.post(f"{self.api}/g/s/media/upload/target/chat-bubble-thumbnail", None, image, "image/png")
         return (await response.json())["mediaValue"]
     
     async def get_eventlog(self, language: str = "en") -> dict:
@@ -1030,25 +1030,25 @@ class Client(AminoHttpClient):
         }
         return ChatBubble.Config(**bubbleConfig)
 
-    async def generate_bubble_file(self, bubbleImage: BinaryIO = None, bubbleConfig: ChatBubble.Config = None) -> BinaryIO:
+    async def generate_bubble_file(self, bubbleImage: bytes = None, bubbleConfig: ChatBubble.Config = None) -> bytes:
         if bubbleImage is None:
             response = await self.get("http://cb1.narvii.com/images/6846/eebb8b22237e1b80f46de62284abd0c74cb440f9_00.png")
-            bubbleImage = io.BytesIO(await response.read())
+            bubbleImage = await response.read()
 
         if not bubbleConfig:
             bubbleConfig = self.create_bubble_config()
 
         buffer = io.BytesIO()
         with ZipFile(buffer, 'w', ZIP_DEFLATED) as zipfile:
-            zipfile.writestr(bubbleConfig.backgroundPath, bubbleImage.read())
+            zipfile.writestr(bubbleConfig.backgroundPath, bubbleImage)
             zipfile.writestr("config.json", bubbleConfig.json())
-        return buffer
+        return buffer.getvalue()
 
-    def load_bubble(self, bubble_zip: BinaryIO) -> Tuple[bytes, ChatBubble]:
-        with ZipFile(bubble_zip, 'r') as zipfile:
+    def load_bubble(self, bubble_zip: BinaryIO) -> Tuple[bytes, ChatBubble.Config]:
+        with ZipFile(io.BytesIO(bubble_zip), 'r') as zipfile:
             config = loads(zipfile.read("config.json"))
 
-            config = ChatBubble.Config(config)
+            config = ChatBubble.Config(**config)
             background = zipfile.read(config.backgroundPath)
         return background, config
 

@@ -411,6 +411,7 @@ class ChatBubble(BaseModel):
         id:                   Optional[str]
         color:                Optional[str]
         previewBackgroundUrl: Optional[str]
+        coverImage:           Optional[str]
 
     config:          Optional[Config]
     status:          Optional[int]

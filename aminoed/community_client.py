@@ -1460,12 +1460,12 @@ class CommunityClient(AminoHttpClient):
         response = await self.get(f"/x{self.comId}/s/chat/chat-bubble/templates?start={start}&size={size}")
         return list(map(lambda o: ChatBubble(**o), (await response.json())["templateList"]))
     
-    async def generate_chat_bubble(self, bubble: BinaryIO = None, 
+    async def generate_chat_bubble(self, bubble: bytes = None, 
             templateId: str = "949156e1-cc43-49f0-b9cf-3bbbb606ad6e") -> ChatBubble:
         response = await self.post(f"/x{self.comId}/s/chat/chat-bubble/templates/{templateId}/generate", data=bubble, type=FileTypes.STREAM)
         return ChatBubble(**(await response.json())["chatBubble"])
     
-    async def edit_chat_bubble(self, bubbleId: str, bubble: BinaryIO) -> ChatBubble:
+    async def edit_chat_bubble(self, bubbleId: str, bubble: bytes) -> ChatBubble:
         response = await self.post(f"/x{self.comId}/s/chat/chat-bubble/{bubbleId}", data=bubble, type=FileTypes.STREAM)
         return ChatBubble(**(await response.json())["chatBubble"])
 
