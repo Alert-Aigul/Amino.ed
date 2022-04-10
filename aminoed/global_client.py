@@ -2,7 +2,7 @@ import base64
 import locale
 import io
 
-from typing import BinaryIO, List, Union
+from typing import BinaryIO, List, Tuple, Union
 from uuid import uuid4
 from zipfile import ZIP_DEFLATED, ZipFile
 from aiohttp import ClientSession, ClientTimeout
@@ -1043,7 +1043,7 @@ class Client(AminoHttpClient):
             zipfile.writestr("config.json", bubbleConfig.json())
         return buffer
 
-    def load_bubble(self, bubble_zip: BinaryIO) -> tuple[bytes, ChatBubble]:
+    def load_bubble(self, bubble_zip: BinaryIO) -> Tuple[bytes, ChatBubble]:
         with ZipFile(bubble_zip, 'r') as zipfile:
             config = loads(zipfile.read("config.json"))
 

@@ -1,12 +1,12 @@
 from setuptools import setup, find_packages
-
+from .aminoed import __version__
 
 with open("README.md", "r") as stream:
     long_description = stream.read()
 
 setup(
     name="Amino.ed",
-    version="2.3.11",
+    version=__version__,
     url="https://github.com/Alert-Aigul/Amino.ed",
     download_url="https://github.com/Alert-Aigul/Amino.ed/archive/refs/heads/main.zip",
     license="MIT",
