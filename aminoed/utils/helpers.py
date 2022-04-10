@@ -3,7 +3,7 @@ import aiohttp
 import requests
 
 from time import time
-from typing import Any
+from typing import Any, Dict, List
 from ujson import loads
 from base64 import b64decode
 from functools import reduce
@@ -24,7 +24,7 @@ async def generate_signature(data: Any) -> str:
     return await (await session.post("https://ed-generators.herokuapp.com/signature", data=data)).text()
 
 
-def get_timers(size: int) -> list[dict[str, int]]:
+def get_timers(size: int) -> List[Dict[str, int]]:
     return tuple(map(lambda _: {"start": int(time()), "end": int(time() + 300)}, range(size)))
 
 

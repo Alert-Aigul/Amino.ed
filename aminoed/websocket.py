@@ -3,8 +3,6 @@ from asyncio.events import AbstractEventLoop, get_event_loop
 
 from contextlib import suppress
 from time import time
-from typing import Optional
-from aiohttp import ClientWebSocketResponse
 from aiohttp.client import ClientSession
 from aiohttp.client_exceptions import WSServerHandshakeError
 from aiohttp.client_ws import ClientWebSocketResponse as WSConnection
