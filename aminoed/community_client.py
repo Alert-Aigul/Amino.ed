@@ -70,8 +70,7 @@ class CommunityClient(AminoHttpClient):
     async def generate_invite_code(self, duration: int = 0, force: bool = True):
         data = {
             "duration": duration,
-            "force": force,
-            "timestamp": int(time() * 1000)
+            "force": force
         }
 
         response = await self.post(f"/g/s-x{self.comId}/community/invitation", data)
@@ -109,8 +108,7 @@ class CommunityClient(AminoHttpClient):
             "extensions": extensions,
             "latitude": 0,
             "longitude": 0,
-            "eventSource": SourceTypes.GLOBAL_COMPOSE,
-            "timestamp": int(time() * 1000)
+            "eventSource": SourceTypes.GLOBAL_COMPOSE
         }
 
         if fansOnly: data["extensions"] = {"fansOnly": fansOnly}
@@ -129,8 +127,7 @@ class CommunityClient(AminoHttpClient):
             "label": title,
             "content": content,
             "mediaList": mediaList,
-            "eventSource": SourceTypes.GLOBAL_COMPOSE,
-            "timestamp": int(time() * 1000)
+            "eventSource": SourceTypes.GLOBAL_COMPOSE
         }
 
         if icon: data["icon"] = icon
@@ -150,8 +147,7 @@ class CommunityClient(AminoHttpClient):
             "mediaList": mediaList,
             "latitude": 0,
             "longitude": 0,
-            "eventSource": "PostDetailView",
-            "timestamp": int(time() * 1000)
+            "eventSource": "PostDetailView"
         }
 
         if title: data["title"] = title
@@ -174,8 +170,7 @@ class CommunityClient(AminoHttpClient):
             "content": content,
             "refObjectId": refObjectId,
             "refObjectType": refObjectType,
-            "type": 2,
-            "timestamp": int(time() * 1000)
+            "type": 2
         }
 
         response = await self.post(f"/x{self.comId}/s/blog", data)
@@ -183,8 +178,7 @@ class CommunityClient(AminoHttpClient):
     
     async def check_in(self, tz: int = -timezone // 1000) -> CheckIn:
         data = {
-            "timezone": tz,
-            "timestamp": int(time() * 1000)
+            "timezone": tz
         }
 
         response = await self.post(f"/x{self.comId}/s/check-in", data)
@@ -192,16 +186,14 @@ class CommunityClient(AminoHttpClient):
 
     async def repair_check_in(self, method: int = RepairTypes.COINS) -> int:
         data = {
-            "repairMethod": method,
-            "timestamp": int(time() * 1000)
+            "repairMethod": method
         }
         response = await self.post(f"/x{self.comId}/s/check-in/repair", data)
         return response.status
 
     async def lottery(self, tz: int = -timezone // 1000) -> int:
         data = {
-            "timezone": tz,
-            "timestamp": int(time() * 1000)
+            "timezone": tz
         }
 
         response = await self.post(f"/x{self.comId}/s/check-in/lottery", data)
@@ -210,7 +202,7 @@ class CommunityClient(AminoHttpClient):
     async def edit_profile(self, nickname: str = None, content: str = None, icon: BinaryIO = None, chatRequestPrivilege: str = None, 
             imageList: list = None, captionList: list = None, backgroundImage: str = None, backgroundColor: str = None, 
             titles: list = None, colors: list = None, defaultBubbleId: str = None) -> int:
-        data = {"timestamp": int(time() * 1000)}
+        data = {}
 
         if captionList and imageList:
             mediaList = [[100, self.upload_media(image, "image"), caption] for image, caption in zip(imageList, captionList)]
@@ -240,8 +232,7 @@ class CommunityClient(AminoHttpClient):
     async def vote_poll(self, blogId: str, optionId: str) -> int:
         data = {
             "value": 1,
-            "eventSource": SourceTypes.DATAIL_POST,
-            "timestamp": int(time() * 1000)
+            "eventSource": SourceTypes.DATAIL_POST
         }
 
         response = await self.post(f"/x{self.comId}/s/blog/{blogId}/poll/option/{optionId}/vote", data)
@@ -252,8 +243,7 @@ class CommunityClient(AminoHttpClient):
         data = {
             "content": message,
             "stickerId": None,
-            "type": 0,
-            "timestamp": int(time() * 1000)
+            "type": 0
         }
 
         if replyTo:
@@ -287,8 +277,7 @@ class CommunityClient(AminoHttpClient):
     
     async def like_blog(self, blogId: Union[str, list] = None, wikiId: str = None) -> int:
         data = {
-            "value": 4,
-            "timestamp": int(time() * 1000)
+            "value": 4
         }
 
         if blogId:
@@ -325,8 +314,7 @@ class CommunityClient(AminoHttpClient):
     
     async def like_comment(self, commentId: str, userId: str = None, blogId: str = None, wikiId: str = None) -> int:
         data = {
-            "value": 4,
-            "timestamp": int(time() * 1000)
+            "value": 4
         }
 
         if userId:
@@ -364,8 +352,7 @@ class CommunityClient(AminoHttpClient):
     async def upvote_comment(self, blogId: str, commentId: str) -> int:
         data = {
             "value": 1,
-            "eventSource": "PostDetailView",
-            "timestamp": int(time() * 1000)
+            "eventSource": "PostDetailView"
         }
 
         response = await self.post(f"/x{self.comId}/s/blog/{blogId}/comment/{commentId}/vote?cv=1.2&value=1", data)
@@ -374,8 +361,7 @@ class CommunityClient(AminoHttpClient):
     async def downvote_comment(self, blogId: str, commentId: str) -> int:
         data = {
             "value": -1,
-            "eventSource": "PostDetailView",
-            "timestamp": int(time() * 1000)
+            "eventSource": "PostDetailView"
         }
 
         response = await self.post(f"/x{self.comId}/s/blog/{blogId}/comment/{commentId}/vote?cv=1.2&value=-1", data)
@@ -391,8 +377,7 @@ class CommunityClient(AminoHttpClient):
             "stackedId": None,
             "respondTo": commentId,
             "type": 0,
-            "eventSource": "UserProfileView",
-            "timestamp": int(time() * 1000)
+            "eventSource": "UserProfileView"
         }
 
         response = await self.post(f"/x{self.comId}/s/user-profile/{userId}/comment", data)
@@ -401,8 +386,7 @@ class CommunityClient(AminoHttpClient):
     async def activity_status(self, status: int) -> int:
         data = {
             "onlineStatus": status,
-            "duration": 86400,
-            "timestamp": int(time() * 1000)
+            "duration": 86400
         }
 
         response = await self.post(f"/x{self.comId}/s/user-profile/{self.userId}/online-status", data)
@@ -426,8 +410,7 @@ class CommunityClient(AminoHttpClient):
             "title": title,
             "inviteeUids": userId if isinstance(userId, list) else [userId],
             "initialMessageContent": message,
-            "content": content,
-            "timestamp": int(time() * 1000)
+            "content": content
         }
 
         if isGlobal: 
@@ -444,8 +427,7 @@ class CommunityClient(AminoHttpClient):
     
     async def invite_to_chat(self, userId: Union[str, list], chatId: str) -> int:
         data = {
-            "uids": userId if isinstance(userId, list) else [userId],
-            "timestamp": int(time() * 1000)
+            "uids": userId if isinstance(userId, list) else [userId]
         }
 
         response = await self.post(f"/x{self.comId}/s/chat/thread/{chatId}/member/invite", data)
@@ -461,8 +443,7 @@ class CommunityClient(AminoHttpClient):
             "coins": coins,
             "tippingContext": {
                 "transactionId": transactionId or str(uuid4())
-            },
-            "timestamp": int(time() * 1000)
+            }
         }
 
         if blogId:
@@ -491,7 +472,7 @@ class CommunityClient(AminoHttpClient):
             return response.status
 
         elif isinstance(userId, list):
-            data = {"targetUidList": userId, "timestamp": int(time() * 1000)}
+            data = {"targetUidList": userId}
             response = await self.post(f"/x{self.comId}/s/user-profile/{self.userId}/joined", data)
             return response.status
 
@@ -516,8 +497,7 @@ class CommunityClient(AminoHttpClient):
 
         data = {
             "flagType": flagType,
-            "message": reason,
-            "timestamp": int(time() * 1000)
+            "message": reason
         }
 
         if userId:
@@ -565,8 +545,7 @@ class CommunityClient(AminoHttpClient):
                 "content": embedContent, # Embed message
                 "mediaList": embedImage  # ObjectPreview
             },
-            "extensions": {"mentionedArray": mentions},
-            "timestamp": int(time() * 1000)
+            "extensions": {"mentionedArray": mentions}
         }
 
         if replyTo:
@@ -580,8 +559,7 @@ class CommunityClient(AminoHttpClient):
             "type": 0,
             "mediaType": 100,
             "mediaUhqEnabled": True,
-            "clientRefId": int(time() / 10 % 1000000000),
-            "timestamp": int(time() * 1000)
+            "clientRefId": int(time() / 10 % 1000000000)
         }
 
         data["mediaUploadValueContentType"] = FileTypes.IMAGE
@@ -594,8 +572,7 @@ class CommunityClient(AminoHttpClient):
         data = {
             "type": 2,
             "mediaType": 110,
-            "clientRefId": int(time() / 10 % 1000000000),
-            "timestamp": int(time() * 1000)
+            "clientRefId": int(time() / 10 % 1000000000)
         }
 
         data["mediaUploadValueContentType"] = FileTypes.AUDIO
@@ -608,8 +585,7 @@ class CommunityClient(AminoHttpClient):
         data = {
             "type": 3,
             "stickerId": stickerId,
-            "clientRefId": int(time() / 10 % 1000000000),
-            "timestamp": int(time() * 1000)
+            "clientRefId": int(time() / 10 % 1000000000)
         }
 
         response = await self.post(f"/x{self.comId}/s/chat/thread/{chatId}/message", data)
@@ -618,8 +594,7 @@ class CommunityClient(AminoHttpClient):
     async def delete_message(self, chatId: str, messageId: str, asStaff: bool = False, reason: str = None) -> int:
         data = {
             "adminOpName": 102,
-            "adminOpNote": {"content": reason},
-            "timestamp": int(time() * 1000)
+            "adminOpNote": {"content": reason}
         }
 
         if asStaff and reason:
@@ -634,8 +609,7 @@ class CommunityClient(AminoHttpClient):
     
     async def mark_as_read(self, chatId: str, messageId: str):
         data = {
-            "messageId": messageId,
-            "timestamp": int(time() * 1000)
+            "messageId": messageId
         }
 
         response = await self.post(f"/x{self.comId}/s/chat/thread/{chatId}/mark-as-read", data)
@@ -645,7 +619,7 @@ class CommunityClient(AminoHttpClient):
             title: str = None, icon: str = None, backgroundImage: BinaryIO = None, content: str = None, 
             announcement: str = None, coHosts: list = None, keywords: list = None, pinAnnouncement: bool = None, 
             publishToGlobal: bool = None, canTip: bool = None, viewOnly: bool = None, canInvite: bool = None, fansOnly: bool = None) -> int:
-        data = {"timestamp": int(time() * 1000)}
+        data = {}
         responses = []
 
         if title: data["title"] = title
@@ -660,22 +634,22 @@ class CommunityClient(AminoHttpClient):
         if not publishToGlobal: data["publishToGlobal"] = 1
 
         if coHosts:
-            data = {"uidList": coHosts, "timestamp": int(time() * 1000)}
+            data = {"uidList": coHosts}
             response = await self.post(f"/x{self.comId}/s/chat/thread/{chatId}/co-host", data)
             responses.append(response.status)
 
         if doNotDisturb is True:
-            data = {"alertOption": 2, "timestamp": int(time() * 1000)}
+            data = {"alertOption": 2}
             response = await self.post(f"/x{self.comId}/s/chat/thread/{chatId}/member/{self.userId}/alert", data)
             responses.append(response.status)
 
         if doNotDisturb is False:
-            data = {"alertOption": 1, "timestamp": int(time() * 1000)}
+            data = {"alertOption": 1}
             response = await self.post(f"/x{self.comId}/s/chat/thread/{chatId}/member/{self.userId}/alert", data)
             responses.append(response.status)
 
         if backgroundImage:
-            data = {"media": [100, await self.upload_media(backgroundImage, "image"), None], "timestamp": int(time() * 1000)}
+            data = {"media": [100, await self.upload_media(backgroundImage, "image"), None]}
             response = await self.post(f"/x{self.comId}/s/chat/thread/{chatId}/member/{self.userId}/background", data)
             responses.append(response.status)
         
@@ -696,15 +670,14 @@ class CommunityClient(AminoHttpClient):
     
     async def transfer_organizer(self, chatId: str, userIds: list) -> int:
         data = {
-            "uidList": userIds,
-            "timestamp": int(time() * 1000)
+            "uidList": userIds
         }
 
         response = await self.post(f"/x{self.comId}/s/chat/thread/{chatId}/transfer-organizer", data)
         return response.status
 
     async def accept_organizer(self, chatId: str, requestId: str) -> int:
-        response = await self.post(f"/x{self.comId}/s/chat/thread/{chatId}/transfer-organizer/{requestId}/accept")
+        response = await self.post(f"/x{self.comId}/s/chat/thread/{chatId}/transfer-organizer/{requestId}/accept", {})
         return response.status
 
     async def kick(self, userId: str, chatId: str, allowRejoin: bool = True) -> int:
@@ -715,7 +688,7 @@ class CommunityClient(AminoHttpClient):
         return response.status
 
     async def join_chat(self, chatId: str) -> int:
-        response = await self.post(f"/x{self.comId}/s/chat/thread/{chatId}/member/{self.userId}")
+        response = await self.post(f"/x{self.comId}/s/chat/thread/{chatId}/member/{self.userId}", {})
         return response.status
 
     async def leave_chat(self, chatId: str) -> int:
@@ -731,8 +704,7 @@ class CommunityClient(AminoHttpClient):
             "paymentContext": {
                 "transactionId": transactionId or str(uuid4()),
                 "isAutoRenew": autoRenew
-            },
-            "timestamp": int(time() * 1000)
+            }
         }
 
         response = await self.post(f"/x{self.comId}/s/influencer/{userId}/subscribe", data)
@@ -745,8 +717,7 @@ class CommunityClient(AminoHttpClient):
     async def play_quiz_raw(self, quizId: str, quizAnswerList: list, quizMode: int = 0) -> int:
         data = {
             "mode": quizMode,
-            "quizAnswerList": quizAnswerList,
-            "timestamp": int(time() * 1000)
+            "quizAnswerList": quizAnswerList
         }
 
         response = await self.post(f"/x{self.comId}/s/blog/{quizId}/quiz/result", data)
@@ -766,8 +737,7 @@ class CommunityClient(AminoHttpClient):
 
         data = {
             "mode": quizMode,
-            "quizAnswerList": quizAnswerList,
-            "timestamp": int(time() * 1000)
+            "quizAnswerList": quizAnswerList
         }
 
         response = await self.post(f"/x{self.comId}/s/blog/{quizId}/quiz/result", data)
@@ -775,8 +745,7 @@ class CommunityClient(AminoHttpClient):
     
     async def vc_permission(self, chatId: str, permission: int) -> int:
         data = {
-            "vvChatJoinType": permission,
-            "timestamp": int(time() * 1000)
+            "vvChatJoinType": permission
         }
 
         response = await self.post(f"/x{self.comId}/s/chat/thread/{chatId}/vvchat-permission", data)
@@ -987,8 +956,7 @@ class CommunityClient(AminoHttpClient):
     
     async def reorder_featured_users(self, userIds: list) -> int:
         data = {
-            "uidList": userIds,
-            "timestamp": int(time() * 1000)
+            "uidList": userIds
         }
 
         response = await self.post(f"/x{self.comId}/s/user-profile/featured/reorder", data)
@@ -1054,8 +1022,7 @@ class CommunityClient(AminoHttpClient):
             "adminOpName": 114,
             "adminOpValue": {
                 "featuredDuration": seconds
-            },
-            "timestamp": int(time() * 1000)
+            }
         }
 
         if userId:
@@ -1085,8 +1052,7 @@ class CommunityClient(AminoHttpClient):
             "adminOpName": 114,
             "adminOpValue": {
                 "featuredType": FeaturedTypes.UNFEATURE
-            },
-            "timestamp": int(time() * 1000)
+            }
         }
 
         if userId:
@@ -1113,8 +1079,7 @@ class CommunityClient(AminoHttpClient):
             "adminOpValue": 9,
             "adminOpNote": {
                 "content": reason
-            },
-            "timestamp": int(time() * 1000)
+            }
         }
 
         if userId:
@@ -1150,8 +1115,7 @@ class CommunityClient(AminoHttpClient):
             "adminOpValue": 0,
             "adminOpNote": {
                 "content": reason
-            },
-            "timestamp": int(time() * 1000)
+            }
         }
 
         if userId:
@@ -1188,8 +1152,7 @@ class CommunityClient(AminoHttpClient):
             "adminOpName": 207,
             "adminOpValue": {
                 "titles": titles
-            },
-            "timestamp": int(time() * 1000)
+            }
         }
 
         response = await self.post(f"/x{self.comId}/s/user-profile/{userId}/admin", data)
@@ -1207,8 +1170,7 @@ class CommunityClient(AminoHttpClient):
             },
             "penaltyType": 0,
             "adminOpNote": {},
-            "noticeType": 7,
-            "timestamp": int(time() * 1000)
+            "noticeType": 7
         }
 
         response = await self.post(f"/x{self.comId}/s/notice", data)
@@ -1227,8 +1189,7 @@ class CommunityClient(AminoHttpClient):
             "penaltyType": 1,
             "penaltyValue": seconds,
             "adminOpNote": {},
-            "noticeType": 4,
-            "timestamp": int(time() * 1000)
+            "noticeType": 4
         }
 
         response = await self.post(f"/x{self.comId}/s/notice", data)
@@ -1239,8 +1200,7 @@ class CommunityClient(AminoHttpClient):
             "reasonType": banType,
             "note": {
                 "content": reason
-            },
-            "timestamp": int(time() * 1000)
+            }
         }
 
         response = await self.post(f"/x{self.comId}/s/user-profile/{userId}/ban", data)
@@ -1250,8 +1210,7 @@ class CommunityClient(AminoHttpClient):
         data = {
             "note": {
                 "content": reason
-            },
-            "timestamp": int(time() * 1000)
+            }
         }
 
         response = await self.post(f"/x{self.comId}/s/user-profile/{userId}/unban", data)
@@ -1266,8 +1225,7 @@ class CommunityClient(AminoHttpClient):
                 "discountStatus": 1, 
                 "discountValue": 1, 
                 "isAutoRenew": autoRenew
-            },
-            "timestamp": int(time() * 1000)
+            }
         }
 
         if self.profile.membershipStatus == 0:
@@ -1288,8 +1246,7 @@ class CommunityClient(AminoHttpClient):
         data = {
             "mediaList": None,
             "title": question,
-            "type": 0,
-            "timestamp": int(time() * 1000)
+            "type": 0
         }
 
         response = await self.post(f"/x{self.comId}/s/blog/{blogId}/poll/option", data)
@@ -1301,8 +1258,7 @@ class CommunityClient(AminoHttpClient):
             "icon": None,
             "label": title,
             "mediaList": None,
-            "parentCategoryId": parentCategoryId,
-            "timestamp": int(time() * 1000)
+            "parentCategoryId": parentCategoryId
         }
 
         response = await self.post(f"/x{self.comId}/s/item-category", data)
@@ -1310,8 +1266,7 @@ class CommunityClient(AminoHttpClient):
 
     async def create_shared_folder(self, title: str) -> int:
         data = {
-            "title": title,
-            "timestamp": int(time() * 1000)
+            "title": title
         }
 
         response = await self.post(f"/x{self.comId}/s/shared-folder/folders", data)
@@ -1320,8 +1275,7 @@ class CommunityClient(AminoHttpClient):
     async def submit_to_wiki(self, wikiId: str, message: str) -> int:
         data = {
             "message": message,
-            "itemId": wikiId,
-            "timestamp": int(time() * 1000)
+            "itemId": wikiId
         }
 
         response = await self.post(f"/x{self.comId}/s/knowledge-base-request", data)
@@ -1330,8 +1284,7 @@ class CommunityClient(AminoHttpClient):
     async def accept_wiki_request(self, requestId: str, destinationCategoryIdList: list) -> int:
         data = {
             "destinationCategoryIdList": destinationCategoryIdList,
-            "actionType": "create",
-            "timestamp": int(time() * 1000)
+            "actionType": "create"
         }
 
         response = await self.post(f"/x{self.comId}/s/knowledge-base-request/{requestId}/approve", data)
@@ -1340,8 +1293,7 @@ class CommunityClient(AminoHttpClient):
     async def apply_avatar_frame(self, avatarId: str, applyToAll: bool = True) -> int:
         data = {
             "frameId": avatarId,
-            "applyToAll": 0,
-            "timestamp": int(time() * 1000)
+            "applyToAll": 0
         }
 
         if applyToAll:
@@ -1354,8 +1306,7 @@ class CommunityClient(AminoHttpClient):
         data = {
             "applyToAll": 0,
             "bubbleId": bubbleId,
-            "threadId": chatId,
-            "timestamp": int(time() * 1000)
+            "threadId": chatId
         }
 
         if applyToAll:
@@ -1473,7 +1424,6 @@ class CommunityClient(AminoHttpClient):
         data = {
             "userActiveTimeChunkList": timers, 
             "optInAdsFlags": flags, 
-            "timestamp": int(time() * 1000), 
             "timezone": timezone
         }
 

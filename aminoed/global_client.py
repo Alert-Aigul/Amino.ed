@@ -45,6 +45,8 @@ class Client(AminoHttpClient):
         self._websocket: WebSocketClient = WebSocketClient(self.auth, self._loop)
         self.callbacks_to_execute: list = []
 
+        self.join_chat
+
     async def __aenter__(self) -> 'Client':
         return self
 
@@ -117,8 +119,7 @@ class Client(AminoHttpClient):
             "clientType": 100,
             "secret": f"0 {password}",
             "deviceID": self.deviceId,
-            "action": "normal",
-            "timestamp": int(time() * 1000)
+            "action": "normal"
         }
 
         response = await self.post("/g/s/auth/login", data)
@@ -138,8 +139,7 @@ class Client(AminoHttpClient):
     async def logout(self):
         data = {
             "deviceID": self.deviceId,
-            "clientType": 100,
-            "timestamp": int(time() * 1000)
+            "clientType": 100
         }
 
         response = await self.post(f"/g/s/auth/logout", data)
@@ -184,8 +184,7 @@ class Client(AminoHttpClient):
             "longitude": 0,
             "address": None,
             "type": 1,
-            "identity": email,
-            "timestamp": int(time() * 1000)
+            "identity": email
         }
 
         if code:
@@ -204,8 +203,7 @@ class Client(AminoHttpClient):
         data = {
             "secret": f"0 {password}",
             "deviceID": self.deviceId,
-            "email": email,
-            "timestamp": int(time() * 1000)
+            "email": email
         }
 
         response = await self.post(f"/g/s/account/delete-request/cancel", data)
@@ -217,8 +215,7 @@ class Client(AminoHttpClient):
 
         data = {
             "age": age,
-            "gender": genderType,
-            "timestamp": int(time() * 1000)
+            "gender": genderType
         }
 
         response = await self.post(f"/g/s/persona/profile/basic", data)
@@ -230,8 +227,7 @@ class Client(AminoHttpClient):
                 "type": 1,
                 "identity": email,
                 "data": {"code": code}},
-            "deviceID": self.deviceId,
-            "timestamp": int(time() * 1000)
+            "deviceID": self.deviceId
         }
 
         response = await self.post(f"/g/s/auth/check-security-validation", data)
@@ -298,8 +294,7 @@ class Client(AminoHttpClient):
             "clientType": 100,
             "timezone": -timezone // 1000,
             "systemPushEnabled": True,
-            "locale": locale()[0],
-            "timestamp": int(time() * 1000)
+            "locale": locale()[0]
         }
 
         response = await self.post(f"/g/s/device", data)
@@ -310,7 +305,7 @@ class Client(AminoHttpClient):
         return (await response.json())["mediaValue"]
     
     async def upload_bubble_thumbnail(self, image: bytes) -> str:
-        response = await self.post(f"{self.api}/g/s/media/upload/target/chat-bubble-thumbnail", None, image, "image/png")
+        response = await self.post(f"/g/s/media/upload/target/chat-bubble-thumbnail", None, image, "image/png")
         return (await response.json())["mediaValue"]
     
     async def get_eventlog(self, language: str = "en") -> dict:
@@ -350,8 +345,7 @@ class Client(AminoHttpClient):
             "title": title,
             "inviteeUids": userId if isinstance(userId, list) else [userId],
             "initialMessageContent": message,
-            "content": content,
-            "timestamp": int(time() * 1000)
+            "content": content
         }
 
         if isGlobal: 
@@ -376,8 +370,7 @@ class Client(AminoHttpClient):
 
     async def invite_to_chat(self, userId: Union[str, list], chatId: str) -> int:
         data = {
-            "uids":  userId if isinstance(userId, list) else [userId],
-            "timestamp": int(time() * 1000)
+            "uids":  userId if isinstance(userId, list) else [userId]
         }
 
         response = await self.post(f"/g/s/chat/thread/{chatId}/member/invite", data)
@@ -470,8 +463,7 @@ class Client(AminoHttpClient):
                 "content": embedContent, # Embed message
                 "mediaList": embedImage  # ObjectPreview
             },
-            "extensions": {"mentionedArray": mentions},
-            "timestamp": int(time() * 1000)
+            "extensions": {"mentionedArray": mentions}
         }
 
         if replyTo:
@@ -486,8 +478,7 @@ class Client(AminoHttpClient):
             "type": 0,
             "mediaType": 100,
             "mediaUhqEnabled": True,
-            "clientRefId": int(time() / 10 % 1000000000),
-            "timestamp": int(time() * 1000)
+            "clientRefId": int(time() / 10 % 1000000000)
         }
 
         data["mediaUploadValueContentType"] = FileTypes.IMAGE
@@ -500,8 +491,7 @@ class Client(AminoHttpClient):
         data = {
             "type": 2,
             "mediaType": 110,
-            "clientRefId": int(time() / 10 % 1000000000),
-            "timestamp": int(time() * 1000)
+            "clientRefId": int(time() / 10 % 1000000000)
         }
 
         data["mediaUploadValueContentType"] = FileTypes.AUDIO
@@ -514,8 +504,7 @@ class Client(AminoHttpClient):
         data = {
             "type": 3,
             "stickerId": stickerId,
-            "clientRefId": int(time() / 10 % 1000000000),
-            "timestamp": int(time() * 1000)
+            "clientRefId": int(time() / 10 % 1000000000)
         }
 
         response = await self.post(f"/g/s/chat/thread/{chatId}/message", data)
@@ -524,8 +513,7 @@ class Client(AminoHttpClient):
     async def delete_message(self, chatId: str, messageId: str, asStaff: bool = False, reason: str = None) -> int:
         data = {
             "adminOpName": 102,
-            "adminOpNote": {"content": reason},
-            "timestamp": int(time() * 1000)
+            "adminOpNote": {"content": reason}
         }
 
         if not asStaff:
@@ -537,8 +525,7 @@ class Client(AminoHttpClient):
 
     async def mark_as_read(self, chatId: str, messageId: str) -> int:
         data = {
-            "messageId": messageId,
-            "timestamp": int(time() * 1000)
+            "messageId": messageId
         }
 
         response = await self.post(f"/g/s/chat/thread/{chatId}/mark-as-read", data)
@@ -548,7 +535,7 @@ class Client(AminoHttpClient):
             title: str = None, icon: str = None, backgroundImage: BinaryIO = None, content: str = None, 
             announcement: str = None, coHosts: list = None, keywords: list = None, pinAnnouncement: bool = None, 
             publishToGlobal: bool = None, canTip: bool = None, viewOnly: bool = None, canInvite: bool = None, fansOnly: bool = None) -> int:
-        data = {"timestamp": int(time() * 1000)}
+        data = {}
         responses = []
 
         if title: data["title"] = title
@@ -563,22 +550,22 @@ class Client(AminoHttpClient):
         if not publishToGlobal: data["publishToGlobal"] = 1
 
         if coHosts:
-            data = {"uidList": coHosts, "timestamp": int(time() * 1000)}
+            data = {"uidList": coHosts}
             response = await self.post(f"/g/s/chat/thread/{chatId}/co-host", data)
             responses.append(response.status)
 
         if doNotDisturb is True:
-            data = {"alertOption": 2, "timestamp": int(time() * 1000)}
+            data = {"alertOption": 2}
             response = await self.post(f"/g/s/chat/thread/{chatId}/member/{self.userId}/alert", data)
             responses.append(response.status)
 
         if doNotDisturb is False:
-            data = {"alertOption": 1, "timestamp": int(time() * 1000)}
+            data = {"alertOption": 1}
             response = await self.post(f"/g/s/chat/thread/{chatId}/member/{self.userId}/alert", data)
             responses.append(response.status)
 
         if backgroundImage:
-            data = {"media": [100, await self.upload_media(backgroundImage, "image"), None], "timestamp": int(time() * 1000)}
+            data = {"media": [100, await self.upload_media(backgroundImage, "image"), None]}
             response = await self.post(f"/g/s/chat/thread/{chatId}/member/{self.userId}/background", data)
             responses.append(response.status)
         
@@ -603,8 +590,7 @@ class Client(AminoHttpClient):
             "coins": coins,
             "tippingContext": {
                 "transactionId": transactionId or str(uuid4())
-            },
-            "timestamp": int(time() * 1000)
+            }
         }
 
         if blogId:
@@ -629,7 +615,7 @@ class Client(AminoHttpClient):
             return response.status
 
         elif isinstance(userId, list):
-            data = {"targetUidList": userId, "timestamp": int(time() * 1000)}
+            data = {"targetUidList": userId}
             response = await self.post(f"/g/s/user-profile/{self.userId}/joined", data)
             return response.status
 
@@ -654,8 +640,7 @@ class Client(AminoHttpClient):
 
         data = {
             "flagType": flagType,
-            "message": reason,
-            "timestamp": int(time() * 1000)
+            "message": reason
         }
 
         if userId:
@@ -690,7 +675,7 @@ class Client(AminoHttpClient):
         return response.json()
     
     async def join_community(self, comId: str, invitationCode: str = None) -> int:
-        data = {"timestamp": int(time() * 1000)}
+        data = {}
         if invitationCode: data["invitationId"] = await self.link_identify(invitationCode)
 
         response = await self.post(f"/x{comId}/s/community/join", data)
@@ -698,8 +683,7 @@ class Client(AminoHttpClient):
 
     async def request_join_community(self, comId: str, message: str = None) -> int:
         data = {
-            "message": message, 
-            "timestamp": int(time() * 1000)
+            "message": message
         }
 
         response = await self.post(f"/x{comId}/s/community/membership-request", data)
@@ -716,8 +700,7 @@ class Client(AminoHttpClient):
             "latitude": 0,
             "longitude": 0,
             "mediaList": None,
-            "eventSource": SourceTypes.USER_PROFILE,
-            "timestamp": int(time() * 1000)
+            "eventSource": SourceTypes.USER_PROFILE
         }
 
         if content: data["content"] = content
@@ -749,7 +732,7 @@ class Client(AminoHttpClient):
         return response.status
     
     async def set_privacy_status(self, isAnonymous: bool = False, getNotifications: bool = False) -> int:
-        data = {"timestamp": int(time() * 1000)}
+        data = {}
 
         if not isAnonymous: data["privacyMode"] = 1
         if isAnonymous: data["privacyMode"] = 2
@@ -761,7 +744,7 @@ class Client(AminoHttpClient):
         return response.status
 
     async def set_amino_id(self, aminoId: str) -> int:
-        data = {"aminoId": aminoId, "timestamp": int(time() * 1000)}
+        data = {"aminoId": aminoId}
 
         response = await self.post(f"/g/s/account/change-amino-id", data)
         return response.status
@@ -775,7 +758,7 @@ class Client(AminoHttpClient):
         return list(map(lambda o: Community(**o), (await response.json())["unlinkedCommunityList"]))
 
     async def reorder_linked_communities(self, comIds: list) -> int:
-        data = {"ndcIds": comIds, "timestamp": int(time() * 1000)}
+        data = {"ndcIds": comIds}
         response = await self.post(f"/g/s/user-profile/{self.userId}/linked-community/reorder", data)
         return response.status
 
@@ -792,8 +775,7 @@ class Client(AminoHttpClient):
         data = {
             "content": message,
             "stickerId": None,
-            "type": 0,
-            "timestamp": int(time() * 1000)
+            "type": 0
         }
 
         if replyTo:
@@ -833,8 +815,7 @@ class Client(AminoHttpClient):
     
     async def like_blog(self, blogId: Union[str, list] = None, wikiId: str = None) -> int:
         data = {
-            "value": 4,
-            "timestamp": int(time() * 1000)
+            "value": 4
         }
 
         if blogId:
@@ -871,8 +852,7 @@ class Client(AminoHttpClient):
     
     async def like_comment(self, commentId: str, userId: str = None, blogId: str = None, wikiId: str = None) -> int:
         data = {
-            "value": 4,
-            "timestamp": int(time() * 1000)
+            "value": 4
         }
 
         if userId:
@@ -935,8 +915,7 @@ class Client(AminoHttpClient):
         data = {
             "objectId": objectId,
             "targetCode": 1,
-            "objectType": objectType,
-            "timestamp": int(time() * 1000)
+            "objectType": objectType
         }
 
         if comId: url = f"/g/s/link-resolution"
@@ -972,8 +951,7 @@ class Client(AminoHttpClient):
 
     async def wallet_config(self, level: int):
         data = {
-            "adsLevel": level,
-            "timestamp": int(time() * 1000)
+            "adsLevel": level
         }
 
         response = await self.post(f"/g/s/wallet/ads/config", data)
@@ -1003,11 +981,10 @@ class Client(AminoHttpClient):
     async def change_avatar_frame(self, frameId: str, aplyToAll: bool = False) -> int:
         data = {
             "frameId": frameId,
-            "applyToAll": 1 if aplyToAll else 0,
-            "timestamp": int(time() * 1000)
+            "applyToAll": 1 if aplyToAll else 0
         }
 
-        response = await self.post(f"{self.apip}/g/s/avatar-frame/apply", data)
+        response = await self.post(f"/g/s/avatar-frame/apply", data)
         return response.status
     
     def create_bubble_config(self, allowedSlots: list = None, contentInsets: list = None, coverImage: str = None, id: str = None, name: str = None, previewBackgroundUrl: str = None, slots: list = None,
@@ -1056,29 +1033,28 @@ class Client(AminoHttpClient):
         data = {
             "bubbleId": bubbleId,
             "applyToAll": 0 if chatId else 1,
-            "threadId": chatId if chatId else None,
-            "timestamp": int(time() * 1000)
+            "threadId": chatId if chatId else None
         }
 
-        response = await self.post(f"{self.api}/g/s/chat/thread/apply-bubble", data)
+        response = await self.post(f"/g/s/chat/thread/apply-bubble", data)
         return response.status
     
     async def get_chat_bubbles(self, chatId: str, start: int = 25, size: int = 25) -> List[ChatBubble]:
-        response = await self.get(f"{self.api}/g/s/chat/chat-bubble?type=all-my-bubbles?threadId={chatId}?start={start}?size={size}")
+        response = await self.get(f"/g/s/chat/chat-bubble?type=all-my-bubbles?threadId={chatId}?start={start}?size={size}")
         return list(map(lambda o: UserProfile(**o), (await response.json())["chatBubbleList"]))
     
     async def get_chat_bubble(self, bubbleId: str) -> ChatBubble:
-        response = await self.get(f"{self.api}/g/s/chat/chat-bubble/{bubbleId}")
+        response = await self.get(f"/g/s/chat/chat-bubble/{bubbleId}")
         return ChatBubble(**(response.text)["chatBubble"])
 
     async def get_chat_bubble_templates(self, start: int = 0, size: int = 25) -> List[ChatBubble]:
-        response = await self.get(f"{self.api}/g/s/chat/chat-bubble/templates?start={start}&size={size}")
+        response = await self.get(f"/g/s/chat/chat-bubble/templates?start={start}&size={size}")
         return list(map(lambda o: UserProfile(**o), (await response.json())["templateList"]))
     
     async def generate_chat_bubble(self, bubble: BinaryIO = None, templateId: str = "949156e1-cc43-49f0-b9cf-3bbbb606ad6e") -> ChatBubble:
-        response = await self.post(f"{self.api}/g/s/chat/chat-bubble/templates/{templateId}/generate", bubble)
+        response = await self.post(f"/g/s/chat/chat-bubble/templates/{templateId}/generate", bubble)
         return ChatBubble(**(response.text)["chatBubble"])
     
     async def edit_chat_bubble(self, bubbleId: str, bubble: BinaryIO) -> ChatBubble:
-        response = await self.post(f"{self.api}/g/s/chat/chat-bubble/{bubbleId}", bubble)
+        response = await self.post(f"/g/s/chat/chat-bubble/{bubbleId}", bubble)
         return ChatBubble(**(response.text)["chatBubble"])

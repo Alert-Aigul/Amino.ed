@@ -1,3 +1,4 @@
+from time import time
 from typing import ClassVar, Optional
 from aiohttp import ClientSession
 from aiohttp.client import ClientTimeout
@@ -62,9 +63,15 @@ class AminoHttpClient:
         return type if type else None
     
     async def post(self, url: str, json: dict = None, data: str = None, type: str = None):
-        headers = self.headers
+        headers = self.headers.copy()
         headers["Content-Type"] = type or self.content_type
-        headers["NDC-MSG-SIG"] = generate_signature(dumps(json) if json else data)
+
+        if json:
+            json["timestamp"] = int(time() * 1000)        
+            headers["NDC-MSG-SIG"] = generate_signature(dumps(json))
+
+        if data:
+            headers["NDC-MSG-SIG"] = generate_signature(data)
 
         async with self._session.post(f"{self.api}{url}", 
                 json=json, data=data, headers=headers,
