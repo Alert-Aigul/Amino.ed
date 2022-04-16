@@ -57,7 +57,7 @@ class WebSocketClient:
                 headers = {
                     "NDCDEVICEID": self.auth.deviceId,
                     "NDCAUTH": f"sid={self.auth.sid}",
-                    "NDC-MSG-SIG": await generate_signature(data)
+                    "NDC-MSG-SIG": generate_signature(data)
                 }
 
                 return await self._session.ws_connect(url, headers=headers)

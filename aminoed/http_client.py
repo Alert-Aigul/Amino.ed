@@ -64,7 +64,7 @@ class AminoHttpClient:
     async def post(self, url: str, json: dict = None, data: str = None, type: str = None):
         headers = self.headers
         headers["Content-Type"] = type or self.content_type
-        headers["NDC-MSG-SIG"] = await generate_signature(dumps(json) if json else data)
+        headers["NDC-MSG-SIG"] = generate_signature(dumps(json) if json else data)
 
         async with self._session.post(f"{self.api}{url}", 
                 json=json, data=data, headers=headers,

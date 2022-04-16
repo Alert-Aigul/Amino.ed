@@ -1,27 +1,29 @@
+from hashlib import sha1
+import hmac
 import json
-import aiohttp
-import requests
+import os
 
 from time import time
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 from ujson import loads
-from base64 import b64decode
-from functools import reduce
+from base64 import b64decode, b64encode
+from functools import cache, reduce
 
-sync_session = requests.Session()
-session = aiohttp.ClientSession()
+PREFIX = bytes.fromhex("42")
+SIG_KEY = bytes.fromhex("F8E7A61AC3F725941E3AC7CAE2D688BE97F30B93")
+DEVICE_KEY = bytes.fromhex("02B258C63559D8804321C5D5065AF320358D366F")
 
 
-def generate_device_sync() -> str:
-    return sync_session.get("https://ed-generators.herokuapp.com/device").text
-    
+@cache
+def generate_device(data: bytes = None) -> str:
+    identifier = b"ED==" + data or os.urandom(16)
+    mac = hmac.new(DEVICE_KEY, PREFIX + identifier, sha1)
+    return f"{PREFIX.hex()}{identifier.hex()}{mac.hexdigest()}".upper()
 
-async def generate_device(data: str = None) -> str:
-    return await (await session.get("https://ed-generators.herokuapp.com/device" + f"?data={data}" if data else "")).text()
-    
 
-async def generate_signature(data: Any) -> str:
-    return await (await session.post("https://ed-generators.herokuapp.com/signature", data=data)).text()
+def generate_signature(data: Union[str, bytes]) -> str:
+    data = data if isinstance(data, bytes) else data.encode("utf-8")
+    return b64encode(PREFIX + hmac.new(SIG_KEY, data, sha1).digest()).decode("utf-8")
 
 
 def get_timers(size: int) -> List[Dict[str, int]]:
