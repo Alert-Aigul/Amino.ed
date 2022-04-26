@@ -2,7 +2,7 @@ from asyncio import get_event_loop, new_event_loop
 from asyncio.events import AbstractEventLoop
 from base64 import b64encode
 from time import time, timezone
-from typing import BinaryIO, Union, List
+from typing import Union, List
 from uuid import uuid4
 from aiohttp import ClientSession, ClientTimeout
 from json_minify import json_minify
@@ -88,8 +88,8 @@ class CommunityClient(AminoHttpClient):
         response = await self.delete(f"/x{self.comId}/s/item/{wikiId}")
         return response.status
     
-    async def upload_media(self, file: BinaryIO, fileType: str) -> str:
-        response = await self.post(f"/x{self.comId}/s/media/upload", data=file.read(), type=fileType)
+    async def upload_media(self, file: bytes, fileType: str) -> str:
+        response = await self.post(f"/x{self.comId}/s/media/upload", data=file, type=fileType)
         return (await response.json())["mediaValue"]
 
     async def post_blog(self, title: str, content: str, imageList: list = None, captionList: list = None, 
@@ -199,7 +199,7 @@ class CommunityClient(AminoHttpClient):
         response = await self.post(f"/x{self.comId}/s/check-in/lottery", data)
         return Lottery(**(await response.json())["lotteryLog"])
     
-    async def edit_profile(self, nickname: str = None, content: str = None, icon: BinaryIO = None, chatRequestPrivilege: str = None, 
+    async def edit_profile(self, nickname: str = None, content: str = None, icon: bytes = None, chatRequestPrivilege: str = None, 
             imageList: list = None, captionList: list = None, backgroundImage: str = None, backgroundColor: str = None, 
             titles: list = None, colors: list = None, defaultBubbleId: str = None) -> int:
         data = {}
@@ -214,11 +214,30 @@ class CommunityClient(AminoHttpClient):
             data["mediaList"] = mediaList
 
         if nickname: data["nickname"] = nickname
-        if icon: data["icon"] = self.upload_media(icon, "image")
+
+        if icon:
+            if isinstance(icon, str):
+                data["icon"] = icon
+
+            if isinstance(icon, bytes):
+                data["icon"] = await self.upload_media(icon, "image")
+
+            else: raise SpecifyType()
+
+        if backgroundImage:
+            if isinstance(backgroundImage, str):
+                data["extensions"] = {"style": {
+                    "backgroundMediaList": [[100, backgroundImage, None, None, None]]}}
+
+            if isinstance(backgroundImage, bytes):
+                image = await self.upload_media(backgroundImage, "image")
+                data["extensions"] = {"style": {"backgroundMediaList": [[100, image, None, None, None]]}}
+
+            else: raise SpecifyType()
+
         if content: data["content"] = content
 
         if chatRequestPrivilege: data["extensions"] = {"privilegeOfChatInviteRequest": chatRequestPrivilege}
-        if backgroundImage: data["extensions"] = {"style": {"backgroundMediaList": [[100, backgroundImage, None, None, None]]}}
         if backgroundColor: data["extensions"] = {"style": {"backgroundColor": backgroundColor}}
         if defaultBubbleId: data["extensions"] = {"defaultBubbleId": defaultBubbleId}
 
@@ -519,7 +538,7 @@ class CommunityClient(AminoHttpClient):
     
     async def send_message(self, chatId: str, message: str = None, type: int = 0, replyTo: str = None, 
             mentions: list = None, embedId: str = None, embedType: int = None, embedLink: str = None, 
-            embedTitle: str = None, embedContent: str = None, embedImage: Union[BinaryIO, str] = None) -> Message:
+            embedTitle: str = None, embedContent: str = None, embedImage: Union[bytes, str] = None) -> Message:
 
         message = message.replace("<$", "‎‏")
         message = message.replace("$>", "‬‭")
@@ -528,7 +547,7 @@ class CommunityClient(AminoHttpClient):
         if embedImage:
             if isinstance(embedImage, str):
                 embedImage = [[100, embedImage, None]]
-            elif isinstance(embedImage, BinaryIO):
+            elif isinstance(embedImage, bytes):
                 embedImage = [[100, await self.upload_media(embedImage, "image"), None]]
             else:
                 raise SpecifyType()
@@ -554,7 +573,7 @@ class CommunityClient(AminoHttpClient):
         response = await self.post(f"/x{self.comId}/s/chat/thread/{chatId}/message", data)
         return Message(**(await response.json())["message"])
     
-    async def send_image(self, chatId: str, file: BinaryIO) -> Message:
+    async def send_image(self, chatId: str, file: bytes) -> Message:
         data = {
             "type": 0,
             "mediaType": 100,
@@ -563,12 +582,12 @@ class CommunityClient(AminoHttpClient):
         }
 
         data["mediaUploadValueContentType"] = FileTypes.IMAGE
-        data["mediaUploadValue"] = b64encode(file.read()).decode()
+        data["mediaUploadValue"] = b64encode(file).decode()
 
         response = await self.post(f"/x{self.comId}/s/chat/thread/{chatId}/message", data)
         return Message(**(await response.json())["message"])
     
-    async def send_audio(self, chatId: str, file: BinaryIO) -> Message:
+    async def send_audio(self, chatId: str, file: bytes) -> Message:
         data = {
             "type": 2,
             "mediaType": 110,
@@ -576,7 +595,7 @@ class CommunityClient(AminoHttpClient):
         }
 
         data["mediaUploadValueContentType"] = FileTypes.AUDIO
-        data["mediaUploadValue"] = b64encode(file.read()).decode()
+        data["mediaUploadValue"] = b64encode(file).decode()
 
         response = await self.post(f"/x{self.comId}/s/chat/thread/{chatId}/message", data)
         return Message(**(await response.json())["message"])
@@ -616,7 +635,7 @@ class CommunityClient(AminoHttpClient):
         return response.status
     
     async def edit_chat(self, chatId: str, doNotDisturb: bool = None, pinChat: bool = None, 
-            title: str = None, icon: str = None, backgroundImage: BinaryIO = None, content: str = None, 
+            title: str = None, icon: Union[bytes, str] = None, backgroundImage: Union[bytes, str] = None, content: str = None, 
             announcement: str = None, coHosts: list = None, keywords: list = None, pinAnnouncement: bool = None, 
             publishToGlobal: bool = None, canTip: bool = None, viewOnly: bool = None, canInvite: bool = None, fansOnly: bool = None) -> int:
         data = {}
@@ -624,7 +643,29 @@ class CommunityClient(AminoHttpClient):
 
         if title: data["title"] = title
         if content: data["content"] = content
-        if icon: data["icon"] = icon
+        
+        if icon:
+            if isinstance(icon, str):
+                data["icon"] = icon
+
+            elif isinstance(icon, bytes):
+                data["icon"] = await self.upload_media(icon)
+            
+            else: raise SpecifyType()
+        
+        if backgroundImage:
+            if isinstance(backgroundImage, str):
+                data = {"media": [100, backgroundImage, None]}
+                response = await self.post(f"/g/s/chat/thread/{chatId}/member/{self.userId}/background", data)
+                responses.append(response.status)
+
+            elif isinstance(backgroundImage, bytes):
+                data = {"media": [100, await self.upload_media(backgroundImage, "image"), None]}
+                response = await self.post(f"/g/s/chat/thread/{chatId}/member/{self.userId}/background", data)
+                responses.append(response.status)
+            
+            else: raise SpecifyType()
+
         if keywords: data["keywords"] = keywords
         if announcement: data["extensions"] = {"announcement": announcement}
         if pinAnnouncement: data["extensions"] = {"pinAnnouncement": pinAnnouncement}
@@ -646,11 +687,6 @@ class CommunityClient(AminoHttpClient):
         if doNotDisturb is False:
             data = {"alertOption": 1}
             response = await self.post(f"/x{self.comId}/s/chat/thread/{chatId}/member/{self.userId}/alert", data)
-            responses.append(response.status)
-
-        if backgroundImage:
-            data = {"media": [100, await self.upload_media(backgroundImage, "image"), None]}
-            response = await self.post(f"/x{self.comId}/s/chat/thread/{chatId}/member/{self.userId}/background", data)
             responses.append(response.status)
         
         if pinChat is True: responses.append((await self.post(f"/x{self.comId}/s/chat/thread/{chatId}/pin", data)).status)
