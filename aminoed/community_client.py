@@ -88,17 +88,17 @@ class CommunityClient(AminoHttpClient):
         response = await self.delete(f"/x{self.comId}/s/item/{wikiId}")
         return response.status
     
-    async def upload_media(self, file: bytes, fileType: str) -> str:
+    async def upload_media(self, file: bytes, fileType: str = FileTypes.IMAGE) -> str:
         response = await self.post(f"/x{self.comId}/s/media/upload", data=file, type=fileType)
         return (await response.json())["mediaValue"]
 
     async def post_blog(self, title: str, content: str, imageList: list = None, captionList: list = None, 
             categoriesList: list = None, backgroundColor: str = None, fansOnly: bool = False, extensions: dict = None) -> int:
         if captionList and imageList:
-            mediaList = [[100, self.upload_media(image, "image"), caption] for image, caption in zip(imageList, captionList)]
+            mediaList = [[100, self.upload_media(image), caption] for image, caption in zip(imageList, captionList)]
 
         elif imageList:
-            mediaList = [[100, self.upload_media(image, "image"), None] for image in imageList]
+            mediaList = [[100, self.upload_media(image), None] for image in imageList]
 
         data = {
             "address": None,
@@ -121,7 +121,7 @@ class CommunityClient(AminoHttpClient):
     async def post_wiki(self, title: str, content: str, icon: str = None, imageList: list = None,
             keywords: str = None, backgroundColor: str = None, fansOnly: bool = False) -> int:
 
-        mediaList = [[100, self.upload_media(image, "image"), None] for image in imageList]
+        mediaList = [[100, self.upload_media(image), None] for image in imageList]
 
         data = {
             "label": title,
@@ -140,7 +140,7 @@ class CommunityClient(AminoHttpClient):
 
     async def edit_blog(self, blogId: str, title: str = None, content: str = None, imageList: list = None, 
             categoriesList: list = None, backgroundColor: str = None, fansOnly: bool = False) -> int:
-        mediaList = [[100, self.upload_media(image, "image"), None] for image in imageList]
+        mediaList = [[100, self.upload_media(image), None] for image in imageList]
 
         data = {
             "address": None,
@@ -205,10 +205,10 @@ class CommunityClient(AminoHttpClient):
         data = {}
 
         if captionList and imageList:
-            mediaList = [[100, self.upload_media(image, "image"), caption] for image, caption in zip(imageList, captionList)]
+            mediaList = [[100, self.upload_media(image), caption] for image, caption in zip(imageList, captionList)]
 
         elif imageList:
-            mediaList = [[100, self.upload_media(image, "image"), None] for image in imageList]
+            mediaList = [[100, self.upload_media(image), None] for image in imageList]
 
         if imageList or captionList and imageList:
             data["mediaList"] = mediaList
@@ -220,7 +220,7 @@ class CommunityClient(AminoHttpClient):
                 data["icon"] = icon
 
             if isinstance(icon, bytes):
-                data["icon"] = await self.upload_media(icon, "image")
+                data["icon"] = await self.upload_media(icon)
 
             else: raise SpecifyType()
 
@@ -230,7 +230,7 @@ class CommunityClient(AminoHttpClient):
                     "backgroundMediaList": [[100, backgroundImage, None, None, None]]}}
 
             if isinstance(backgroundImage, bytes):
-                image = await self.upload_media(backgroundImage, "image")
+                image = await self.upload_media(backgroundImage)
                 data["extensions"] = {"style": {"backgroundMediaList": [[100, image, None, None, None]]}}
 
             else: raise SpecifyType()
@@ -548,7 +548,7 @@ class CommunityClient(AminoHttpClient):
             if isinstance(embedImage, str):
                 embedImage = [[100, embedImage, None]]
             elif isinstance(embedImage, bytes):
-                embedImage = [[100, await self.upload_media(embedImage, "image"), None]]
+                embedImage = [[100, await self.upload_media(embedImage), None]]
             else:
                 raise SpecifyType()
 
@@ -660,7 +660,7 @@ class CommunityClient(AminoHttpClient):
                 responses.append(response.status)
 
             elif isinstance(backgroundImage, bytes):
-                data = {"media": [100, await self.upload_media(backgroundImage, "image"), None]}
+                data = {"media": [100, await self.upload_media(backgroundImage), None]}
                 response = await self.post(f"/g/s/chat/thread/{chatId}/member/{self.userId}/background", data)
                 responses.append(response.status)
             

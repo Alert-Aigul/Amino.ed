@@ -447,7 +447,7 @@ class Client(AminoHttpClient):
             if isinstance(embedImage, str):
                 embedImage = [[100, embedImage, None]]
             elif isinstance(embedImage, bytes):
-                embedImage = [[100, await self.upload_media(embedImage, "image"), None]]
+                embedImage = [[100, await self.upload_media(embedImage), None]]
             else:
                 raise SpecifyType()
 
@@ -557,7 +557,7 @@ class Client(AminoHttpClient):
                 responses.append(response.status)
 
             elif isinstance(backgroundImage, bytes):
-                data = {"media": [100, await self.upload_media(backgroundImage, "image"), None]}
+                data = {"media": [100, await self.upload_media(backgroundImage), None]}
                 response = await self.post(f"/g/s/chat/thread/{chatId}/member/{self.userId}/background", data)
                 responses.append(response.status)
             
@@ -732,7 +732,7 @@ class Client(AminoHttpClient):
                 data["icon"] = icon
 
             if isinstance(icon, bytes):
-                data["icon"] = await self.upload_media(icon, "image")
+                data["icon"] = await self.upload_media(icon)
 
             else: raise SpecifyType()
 
@@ -742,7 +742,7 @@ class Client(AminoHttpClient):
                     "backgroundMediaList": [[100, backgroundImage, None, None, None]]}}
 
             if isinstance(backgroundImage, bytes):
-                image = await self.upload_media(backgroundImage, "image")
+                image = await self.upload_media(backgroundImage)
                 data["extensions"] = {"style": {"backgroundMediaList": [[100, image, None, None, None]]}}
 
             else: raise SpecifyType()

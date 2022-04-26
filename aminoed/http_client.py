@@ -66,11 +66,11 @@ class AminoHttpClient:
         headers = self.headers.copy()
         headers["Content-Type"] = type or self.content_type
 
-        if json:
+        if json is not None:
             json["timestamp"] = int(time() * 1000)        
             headers["NDC-MSG-SIG"] = generate_signature(dumps(json))
 
-        if data:
+        if data is not None:
             headers["NDC-MSG-SIG"] = generate_signature(data)
 
         async with self._session.post(f"{self.api}{url}", 
