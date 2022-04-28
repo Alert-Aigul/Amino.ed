@@ -98,9 +98,25 @@ class UserProfile(BaseModel):
 
     class Extensions(BaseModel):
         class Style(BaseModel):
+            backgroundColor:     Optional[str]
             backgroundMediaList: Optional[List[List]]
+            
+        class Title(BaseModel):
+            color: Optional[str]
+            title: Optional[str]
 
-        style: Optional[Style]
+        style:              Optional[Style]
+        __disabledStatus__: Optional[int]
+        __disabledTime__:   Optional[int]
+        __disabledLevel__:  Optional[int]
+        hideUserProfile:    Optional[bool]
+        defaultBubbleId:    Optional[str]
+
+        customTitles:                    Optional[List[Title]]
+        coverAnimation:                  Optional[Any]
+        isMemberOfTeamAmino:             Optional[bool]
+        privilegeOfChatInviteRequest:    Optional[int]
+        privilegeOfCommentOnUserProfile: Optional[int]
 
     class InfluencerInfo(BaseModel):
         fansCount:   Optional[int]

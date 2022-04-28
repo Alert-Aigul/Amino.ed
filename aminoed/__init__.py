@@ -2,14 +2,14 @@ __title__ = 'Amino.ed'
 __author__ = 'Alert Aigul'
 __license__ = 'MIT'
 __copyright__ = 'Copyright 2020-2022 Alert'
-__version__ = '2.5.2'
+__version__ = '2.5.3'
 
 from asyncio import get_event_loop
 from asyncio.events import AbstractEventLoop
 from requests import get
 
 from .global_client import Client
-from .community_client import CommunityClient
+from .community_client import CommunityCliЫent
 from .utils import exceptions, models, types, helpers
 from .websocket import WebSocketClient
 
