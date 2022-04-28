@@ -9,7 +9,7 @@ from asyncio.events import AbstractEventLoop
 from requests import get
 
 from .global_client import Client
-from .community_client import CommunityCliЫent
+from .community_client import CommunityClient
 from .utils import exceptions, models, types, helpers
 from .websocket import WebSocketClient
 
