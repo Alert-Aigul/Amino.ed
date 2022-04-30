@@ -45,8 +45,6 @@ class Client(AminoHttpClient):
         self._websocket: WebSocketClient = WebSocketClient(self.auth, self._loop)
         self.callbacks_to_execute: list = []
 
-        self.edit_chat
-
     async def __aenter__(self) -> 'Client':
         return self
 
@@ -83,10 +81,11 @@ class Client(AminoHttpClient):
             self.websocket.emitter.on(event, callback)
         return callback
     
-    async def initialize_community(self, comId: str = None, aminoId: str = None, 
+    async def community(self, comId: str = None, aminoId: str = None, 
             get_info: bool = False, community: Community = None) -> CommunityClient:
         if aminoId:
-            comId = (await self.search_community(aminoId))[0].comId
+            link = f"http://aminoapps.com/c/{aminoId}"
+            comId = (await self.get_link_info(link)).community.comId
 
         if get_info:
             community: Community = await self.get_community_info(comId)
@@ -96,10 +95,10 @@ class Client(AminoHttpClient):
         return CommunityClient(comId, self._loop, None,
                 community, self.headers, self.proxy, self.proxy_auth)
     
-    def run(self, email: str = None, password: str = None, sid: str = None) -> Auth:
+    def start(self, email: str = None, password: str = None, sid: str = None) -> Auth:
 
         if not sid:
-            self._loop.run_until_complete(self.login(email, password))
+            self._loop.run_until_complete(self.cached_login(email, password))
         else:
             self._loop.run_until_complete(self.login_sid(sid))
         
@@ -112,7 +111,8 @@ class Client(AminoHttpClient):
 
         return self.auth
 
-    async def login(self, email: str, password: str) -> Auth:
+    async def login(self, email: str, password: str,
+                    deviceId: Union[str, bool] = False) -> Auth:
         data = {
             "v": 2,
             "email": email,
@@ -121,6 +121,105 @@ class Client(AminoHttpClient):
             "deviceID": self.deviceId,
             "action": "normal"
         }
+        
+        if isinstance(deviceId, bool) and deviceId:
+            data["deviceID"] = generate_device(email)
+            
+        elif isinstance(deviceId, str) and deviceId:
+            data["deviceID"] = deviceId
+
+        response = await self.post("/g/s/auth/login", data)
+        self.auth: Auth = Auth(**(await response.json()))
+        self.auth.deviceId = self.deviceId
+        self.websocket.auth = self.auth
+
+        self.account: Account = self.auth.account
+        self.profile: UserProfile = self.auth.userProfile
+        
+        self.authenticated = True
+        self.sid = self.auth.sid
+        self.userId = self.auth.auid
+
+        return self.auth
+    
+    async def cached_login(self, email: str, password: str = None,
+                           deviceId: Union[str, bool] = False) -> Auth:
+        if (account := await get_cache(email)):
+            if not sid_expired(account["sid"]):
+                return await self.login_sid(account["sid"])
+            
+            if not secret_expired(account["secret"]):
+                auth = await self.login_with_secret(
+                    email, account["secret"], deviceId)
+                
+            else:
+                auth = await self.login(email, password, deviceId)
+                
+            await set_cache(email, {
+                "secret": auth.secret,
+                "sid": auth.sid,
+                "device": deviceId or self.deviceId
+            })
+            
+            return auth
+        
+        auth = await self.login(email, password, deviceId)
+                
+        await set_cache(email, {
+            "secret": auth.secret,
+            "sid": auth.sid,
+            "device": deviceId or self.deviceId
+        })
+        
+        return auth
+                
+    async def login_with_secret(self, email: str,
+            secret: str, deviceId: str = None) -> Auth:
+        data = {
+            "v": 2,
+            "email": email,
+            "clientType": 100,
+            "secret": secret,
+            "deviceID": deviceId or self.deviceId,
+            "action": "normal"
+        }
+        
+        if isinstance(deviceId, bool) and deviceId:
+            data["deviceID"] = generate_device(email)
+            
+        elif isinstance(deviceId, str) and deviceId:
+            data["deviceID"] = deviceId
+
+        response = await self.post("/g/s/auth/login", data)
+        self.auth: Auth = Auth(**(await response.json()))
+        self.auth.deviceId = self.deviceId
+        self.websocket.auth = self.auth
+
+        self.account: Account = self.auth.account
+        self.profile: UserProfile = self.auth.userProfile
+        
+        self.authenticated = True
+        self.sid = self.auth.sid
+        self.userId = self.auth.auid
+
+        return self.auth
+    
+    async def login_with_phone(self, number: str,
+            password: str, deviceId: str = None) -> Auth:
+        data = {
+            "v": 2,
+            "phoneNumber": number,
+            "secret": f"0 {password}",
+            "deviceID": deviceId or self.deviceId,
+            "clientType": 100,
+            "action": "normal"
+        }
+        
+        if isinstance(deviceId, bool) and deviceId:
+            data["deviceID"] = generate_device(number)
+            
+        elif isinstance(deviceId, str) and deviceId:
+            data["deviceID"] = deviceId
 
         response = await self.post("/g/s/auth/login", data)
         self.auth: Auth = Auth(**(await response.json()))
@@ -162,10 +261,13 @@ class Client(AminoHttpClient):
     async def login_sid(self, sid: str) -> Auth:
         self.sid = sid
         self.authenticated = True
-        self.userId = sid_to_uid(sid)
+        self.userId = decode_sid(sid).userId
         
-        self.account: Account = await self.get_account_info()
-        self.profile: UserProfile = await self.get_user_info(self.userId)
+        get_account_info_task = self._loop.create_task(self.get_account_info())
+        get_user_info_task = self._loop.create_task(self.get_user_info(self.userId))
+        
+        self.account: Account = await get_account_info_task
+        self.profile: UserProfile = await get_user_info_task
 
         self.auth: Auth = Auth(account=self.account, auid=self.userId,
                 profile=self.profile, sid=self.sid, deviceId=self.deviceId)

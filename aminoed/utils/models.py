@@ -599,7 +599,7 @@ class Message(BaseModel):
     content:           Optional[str]
     chatBubbleId:      Optional[str]
     clientRefId:       Optional[int]
-    threadId:          Optional[str]
+    chatId:            Optional[str] = Field(alias="threadId")
     createdTime:       Optional[datetime]
     chatBubbleVersion: Optional[int]
     type:              Optional[int]
@@ -979,3 +979,14 @@ class Event(BaseModel):
     message:          Optional[Message] = Field(alias="chatMessage")
     alertOption:      Optional[int]
     membershipStatus: Optional[int]
+
+class SID(BaseModel):
+    signature:  Optional[str]
+    prefix:     Optional[str]
+    original:   Optional[str]
+    data:       Optional[dict]
+    version:    Optional[int] = Field(alias="0") # ?
+    userId:     Optional[str] = Field(alias="2")
+    ip:         Optional[str] = Field(alias="4")
+    makeTime:   Optional[int] = Field(alias="5")
+    clientType: Optional[int] = Field(alias="6")

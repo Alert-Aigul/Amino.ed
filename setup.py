@@ -41,7 +41,6 @@ setup(
         "ujson",
         "requests",
         "eventemitter",
-        "typing",
         "pydantic"
     ],
     setup_requires=[

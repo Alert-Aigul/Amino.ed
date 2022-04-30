@@ -6,6 +6,10 @@ __pycache__/
 # C extensions
 *.so
 
+# Amino.ed extensions
+*.cache
+test.py
+
 # Distribution / packaging
 .Python
 build/

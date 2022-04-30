@@ -1,23 +1,32 @@
-from hashlib import sha1
+import asyncio
 import hmac
-import json
 import os
 
+from hashlib import sha1
 from time import time
-from typing import Dict, List, Union
-from ujson import loads
-from base64 import b64decode, b64encode
-from functools import reduce
+from typing import Any, Dict, List, Union
+from aiofile import async_open
+from ujson import loads, load, dump, dumps
+from base64 import urlsafe_b64decode, b64encode, urlsafe_b64encode
+
+from .models import SID
 
 PREFIX = bytes.fromhex("42")
 SIG_KEY = bytes.fromhex("F8E7A61AC3F725941E3AC7CAE2D688BE97F30B93")
 DEVICE_KEY = bytes.fromhex("02B258C63559D8804321C5D5065AF320358D366F")
 
+CACHE_WRITER_LOCK = asyncio.Lock()
+CACHE_READER_LOCK = asyncio.Lock()
+
 
 def generate_device(data: bytes = None) -> str:
-    identifier = b"ED==" + (data or os.urandom(16))
+    identifier = data or os.urandom(20)
     mac = hmac.new(DEVICE_KEY, PREFIX + identifier, sha1)
     return f"{PREFIX.hex()}{identifier.hex()}{mac.hexdigest()}".upper()
+
+
+def update_device(deviceId: str) -> str:
+    return generate_device(bytes.fromhex(deviceId[2:42]))
 
 
 def generate_signature(data: Union[str, bytes]) -> str:
@@ -29,22 +38,87 @@ def get_timers(size: int) -> List[Dict[str, int]]:
     return tuple(map(lambda _: {"start": int(time()), "end": int(time() + 300)}, range(size)))
 
 
-def decode_sid(sid: str) -> dict:
-    args = (lambda a, e: a.replace(*e), ("-+", "_/"), sid+"="*(-len(sid) % 4))
-    return loads(b64decode(reduce(*args).encode())[1:-20].decode())
+def generate_sid(key: str, userId: str, ip: str, clientType: int = 100) -> str:
+    data = {
+        "1": None, 
+        "0": 2, 
+        "3": 0, 
+        "2": userId, 
+        "5": int(time()), 
+        "4": ip, 
+        "6": clientType
+    }
+    
+    identifier = b"\x02" + dumps(data).encode()
+    mac = hmac.new(bytes.fromhex(key), identifier, sha1)
+    return urlsafe_b64encode(identifier + mac.digest()).decode().replace("=", "")
 
 
-def sid_to_uid(sid: str) -> str:
-    return decode_sid(sid)["2"]
+def decode_sid(sid: str) -> SID:
+    fixed_sid = sid + "=" * (4 - len(sid) % 4)
+    uncoded_sid = urlsafe_b64decode(fixed_sid)
+    
+    prefix = uncoded_sid[:1].hex()
+    signature = uncoded_sid[-20:].hex()
+    data = loads(uncoded_sid[1:-20])
+    
+    return SID(
+        original=sid, 
+        prefix=prefix, 
+        signature=signature, 
+        data=data, **data
+    )
+    
+    
+def decode_secret(secret: str) -> SID:
+    info = secret.split()
+    
+    info[0] = int(info[0])
+    info[5] = int(info[5])
+    info[6] = int(info[6])
+    
+    return info
 
 
-def sid_to_ip_address(sid: str) -> str:
-    return decode_sid(sid)["4"]
+def secret_expired(secret: str) -> bool:
+    return decode_secret(secret)[6] - 1209600 > int(time())
 
+
+def sid_expired(secret: str) -> bool:
+    return decode_sid(secret).makeTime - 86400 > int(time())
+    
 
 def is_json(myjson) -> bool:
     try:
-        json.loads(myjson)
+        loads(myjson)
     except ValueError:
         return False
     return True
+
+
+async def set_cache(key: str, value: Any) -> Any:
+    async with CACHE_READER_LOCK:
+        try:
+            async with async_open(".ed.cache") as file:
+                cache = loads(await file.read())
+        except FileNotFoundError:
+            cache = {}
+    
+    cache.update({
+        key: value
+    })
+    
+    async with CACHE_WRITER_LOCK:
+        async with async_open(".ed.cache", "w") as file:
+            await file.write(dumps(cache))
+
+
+async def get_cache(key: str, default: Any = None) -> Any:
+    async with CACHE_READER_LOCK:
+        try:
+            async with async_open(".ed.cache") as file:
+                cache: dict = loads(await file.read())
+        except FileNotFoundError:
+            return default
+    
+    return cache.get(key, default)
