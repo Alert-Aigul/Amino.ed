@@ -1,8 +1,13 @@
+from re import search
 from setuptools import setup, find_packages
-from aminoed import __version__
+
 
 with open("README.md", "r") as stream:
     long_description = stream.read()
+    
+with open(f'aminoed/__init__.py') as fp:
+    __version__ = search("'" + (r"\d*." * 5) + "'", 
+                         fp.read()).group().replace("'", '')
 
 setup(
     name="Amino.ed",
@@ -34,14 +39,13 @@ setup(
         "ed"
     ],
     install_requires=[
-        "requests",
         "setuptools",
         "six",
         "aiohttp",
         "ujson",
-        "requests",
-        "eventemitter",
-        "pydantic"
+        "pydantic",
+        "aiofile",
+        "eventemitter"
     ],
     setup_requires=[
         "wheel"
