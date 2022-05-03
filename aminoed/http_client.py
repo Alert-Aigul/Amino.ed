@@ -6,7 +6,7 @@ from ujson import dumps
 
 from .utils.helpers import generate_signature, is_json
 from .utils.exceptions import CheckException
-
+ 
 
 class AminoHttpClient:
     proxy: Optional[str] = None
@@ -17,7 +17,8 @@ class AminoHttpClient:
     headers = {
         "Accept-Language": "en-En",
         "Content-Type"   : "application/json; charset=utf-8",
-        "NDCDEVICEID"    : "4240460afcb124fe8e9ac55133749c7027a160df0e853211adc49848822952b6efa10f9c657c3c9665"
+        "NDCDEVICEID"    : "4240460afcb124fe8e9ac55133749c7027a160df0e853211adc49848822952b6efa10f9c657c3c9665",
+        "User-Agent"     : "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.41 Mobile Safari/537.36"
     }
 
     @property
@@ -75,8 +76,8 @@ class AminoHttpClient:
 
         async with self._session.post(f"{self.api}{url}", 
                 json=json, data=data, headers=headers,
-                proxy=self.proxy, proxy_auth=self.proxy_auth) as response:
-
+                proxy=self.proxy, proxy_auth=self.proxy_auth) as response:          
+            
             if not is_json((json := await response.text())) or response.status != 200:
                 return CheckException(json)
             return response
@@ -84,7 +85,7 @@ class AminoHttpClient:
     async def get(self, url: str):
         async with self._session.get(f"{self.api}{url}",
                 headers=self.headers, proxy=self.proxy, proxy_auth=self.proxy_auth) as response:
-
+            
             if not is_json((json := await response.text())) or response.status != 200:
                 return CheckException(json)
             return response

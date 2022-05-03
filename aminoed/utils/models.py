@@ -67,7 +67,7 @@ class Account(BaseModel):
     class AdvancedSettings(BaseModel):
         analyticsEnabled: Optional[int]
 
-    extensions:            Optional[Extensions]
+    extensions:            Optional[Extensions] = Extensions()
     advancedSettings:      Optional[AdvancedSettings]
     username:              Optional[str]
     status:                Optional[int]
@@ -124,7 +124,7 @@ class UserProfile(BaseModel):
         pinned:      Optional[bool]
         createdTime: Optional[datetime]
         
-    extensions:              Optional[Extensions]
+    extensions:              Optional[Extensions] = Extensions()
     influencerInfo:          Optional[InfluencerInfo]
     avatarFrame:             Optional[AvatarFrame]
     settings:                Optional[Settings]
@@ -533,7 +533,7 @@ class Thread(BaseModel):
         vvChatJoinType:               Optional[int]
 
     author:             Optional[UserProfile]
-    extensions:         Optional[Extensions]
+    extensions:         Optional[Extensions] = Extensions()
     lastMessageSummary: Optional[LastMessage]
     tipInfo:            Optional[TipInfo]
     userAddedTopicList: Optional[Topic]
@@ -590,7 +590,7 @@ class Message(BaseModel):
         replyMessage:      Optional[Dict]
         replyMessageId:    Optional[str]
 
-    extensions:        Optional[Extensions]
+    extensions:        Optional[Extensions] = Extensions()
     includedInSummary: Optional[bool]
     author:            Optional[UserProfile]
     isHidden:          Optional[bool]
@@ -630,7 +630,7 @@ class Blog(BaseModel):
 
         status:         Optional[int]
         parentType:     Optional[int]
-        extensions:     Optional[Extensions]
+        extensions:     Optional[Extensions] = Extensions()
         title:          Optional[str]
         createdTime:    Optional[datetime]
         quizQuestionId: Optional[str]
@@ -673,7 +673,7 @@ class Blog(BaseModel):
     viewCount:             Optional[int]
     language:              Optional[str]
     author:                Optional[UserProfile]
-    extensions:            Optional[Extensions]
+    extensions:            Optional[Extensions] = Extensions()
     votesCount:            Optional[int]
     comId:                 Optional[int] = Field(alias="ndcId")
     createdTime:           Optional[datetime]
@@ -704,7 +704,7 @@ class Wiki(BaseModel):
     globalCommentsCount: Optional[int]
     modifiedTime:        Optional[datetime]
     itemId:              Optional[str]
-    extensions:          Optional[Extensions]
+    extensions:          Optional[Extensions] = Extensions()
     votesCount:          Optional[int]
     comId:               Optional[int] = Field(alias="ndcId")
     createdTime:         Optional[datetime]
@@ -834,7 +834,7 @@ class StickerCollection(BaseModel):
     collectionId:        Optional[str]
     description:         Optional[str]
     author:              Optional[UserProfile]
-    extensions:          Optional[Extensions]
+    extensions:          Optional[Extensions] = Extensions()
     createdTime:         Optional[datetime]
     isGloballyAvailable: Optional[bool]
     restrictionInfo:     Optional[RestrictionInfo]
