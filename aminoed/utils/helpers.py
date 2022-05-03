@@ -122,3 +122,7 @@ async def get_cache(key: str, default: Any = None) -> Any:
             return default
     
     return cache.get(key, default)
+
+
+def properties(objects: list, name: str):
+    return [getattr(o, name) for o in objects]

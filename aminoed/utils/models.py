@@ -123,7 +123,8 @@ class UserProfile(BaseModel):
         monthlyFee:  Optional[int]
         pinned:      Optional[bool]
         createdTime: Optional[datetime]
-
+        
+    extensions:              Optional[Extensions]
     influencerInfo:          Optional[InfluencerInfo]
     avatarFrame:             Optional[AvatarFrame]
     settings:                Optional[Settings]

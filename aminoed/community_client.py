@@ -831,14 +831,15 @@ class CommunityClient(AminoHttpClient):
         response = await self.get(f"/x{self.comId}/s/influencer/{userId}/fans?start={start}&size={size}")
         return list(map(lambda o: UserProfile(**o), (await response.json())))
 
-    async def get_blocked_users(self, start: int = 0, size: int = 25) -> List[UserProfile]:
-        response = await self.get(f"/x{self.comId}/s/block?start={start}&size={size}")
-        return list(map(lambda o: UserProfile(**o), (await response.json())["userProfileList"]))
+    # async def get_blocked_users(self, start: int = 0, size: int = 25) -> List[str]:
+    #     response = await self.get(f"/x{self.comId}/s/block?start={start}&size={size}")
+    #     return await response.json()
 
-    async def get_blocker_users(self, start: int = 0, size: int = 25) -> List[str]:
-        response = await self.get(f"/x{self.comId}/s/block?start={start}&size={size}")
-        return loads(await response.text())["blockerUidList"]
-
+    # async def get_blocker_users(self, start: int = 0, size: int = 25) -> List[str]:
+    #     response = await self.get(f"/x{self.comId}/s/block?start={start}&size={size}")
+    #     return await response.json()
+    # I make it in next updates
+    
     async def search_users(self, nickname: str, start: int = 0, size: int = 25) -> List[UserProfile]:
         response = await self.get(f"/x{self.comId}/s/user-profile?type=name&q={nickname}&start={start}&size={size}")
         return list(map(lambda o: UserProfile(**o), (await response.json())["userProfileList"]))
