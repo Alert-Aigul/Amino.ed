@@ -970,6 +970,17 @@ class FailedSubscribeFanClub(Exception):
         Exception.__init__(*args, **kwargs)
 
 
+class InvalidChatBubble(Exception):
+    """
+    - **API Code** : 3904
+    - **API Message** : Sorry, this chat bubble is invalid. Please try another one.
+    - **API String** : ``Unknown String``
+    """
+
+    def __init__(*args, **kwargs):
+        Exception.__init__(*args, **kwargs)
+
+
 def CheckException(data):
     try:
         data = json.loads(data)
@@ -1129,6 +1140,8 @@ def CheckException(data):
         raise AccountAlreadyRestored(data)
     elif api_code == 3102:
         raise IncorrectVerificationCode(data)
+    elif api_code == 3904:
+        raise InvalidChatBubble(data)
     elif api_code == 3905:
         raise NotOwnerOfChatBubble(data)
     elif api_code == 4300:

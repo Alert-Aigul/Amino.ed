@@ -211,7 +211,7 @@ class Client(AminoHttpClient):
         return auth
                 
     async def login_with_secret(self, email: str,
-            secret: str, deviceId: str = None) -> Auth:
+            secret: str, deviceId: Union[str, bool] = False) -> Auth:
         data = {
             "v": 2,
             "email": email,
@@ -242,7 +242,7 @@ class Client(AminoHttpClient):
         return self.auth
     
     async def login_with_phone(self, number: str,
-            password: str, deviceId: str = None) -> Auth:
+            password: str, deviceId: Union[str, bool] = False) -> Auth:
         data = {
             "v": 2,
             "phoneNumber": number,
@@ -312,10 +312,11 @@ class Client(AminoHttpClient):
         
         return self.auth
     
-    async def register(self, nickname: str, email: str, password: str, code: str) -> Auth:
+    async def register(self, nickname: str, email: str, password: str, 
+                       code: str, deviceId: Union[str, bool] = False) -> Auth:
         data = {
             "secret": f"0 {password}",
-            "deviceID": self.deviceId,
+            "deviceID": deviceId or self.deviceId,
             "email": email,
             "clientType": 100,
             "nickname": nickname,
@@ -334,6 +335,12 @@ class Client(AminoHttpClient):
                 "type": 1,
                 "identity": email
             }
+        
+        if isinstance(deviceId, bool) and deviceId:
+            data["deviceID"] = generate_device(email)
+            
+        elif isinstance(deviceId, str) and deviceId:
+            data["deviceID"] = deviceId
 
         response = await self.post(f"/g/s/auth/register", data)
         return Auth(**(await response.json()))
@@ -1207,7 +1214,7 @@ class Client(AminoHttpClient):
 
     async def get_chat_bubble_templates(self, start: int = 0, size: int = 25) -> List[ChatBubble]:
         response = await self.get(f"/g/s/chat/chat-bubble/templates?start={start}&size={size}")
-        return list(map(lambda o: UserProfile(**o), (await response.json())["templateList"]))
+        return list(map(lambda o: ChatBubble(**o), (await response.json())["templateList"]))
     
     async def generate_chat_bubble(self, bubble: bytes = None, templateId: str = "949156e1-cc43-49f0-b9cf-3bbbb606ad6e") -> ChatBubble:
         response = await self.post(f"/g/s/chat/chat-bubble/templates/{templateId}/generate", bubble)
