@@ -55,6 +55,16 @@ class AminoHttpClient:
     @sid.setter
     def sid(self, sid: str) -> None:
         self.headers["NDCAUTH"] = f"sid={sid}"
+        
+    @property
+    def timeout(self) -> int:
+        if not self._timeout:
+            self._timeout = 60
+        return self._timeout
+
+    @timeout.setter
+    def timeout(self, seconds: int) -> None:
+        self._timeout = seconds
     
     @property
     def content_type(self) -> Optional[str]:

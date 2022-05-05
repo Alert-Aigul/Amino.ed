@@ -12,6 +12,7 @@ class AminoHttpClient:
     proxy: Optional[str] = None
     proxy_auth: Optional[str] = None
     _session: Optional[ClientSession] = None
+    _timeout: Optional[ClientTimeout] = None
     api: ClassVar = "https://service.narvii.com/api/v1"
 
     headers = {
@@ -57,6 +58,16 @@ class AminoHttpClient:
     @sid.setter
     def sid(self, sid: str) -> None:
         self.headers["NDCAUTH"] = f"sid={sid}"
+        
+    @property
+    def timeout(self) -> ClientTimeout:
+        if not self._timeout:
+            self._timeout = ClientTimeout(60)
+        return self._timeout
+
+    @timeout.setter
+    def timeout(self, seconds: int) -> None:
+        self._timeout = ClientTimeout(seconds)
     
     @property
     def content_type(self) -> Optional[str]:

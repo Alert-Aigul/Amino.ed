@@ -6,7 +6,7 @@ from hashlib import sha1
 from time import time
 from typing import Any, Dict, List, Union
 from aiofile import async_open
-from ujson import loads, load, dump, dumps
+from ujson import loads, dumps
 from base64 import urlsafe_b64decode, b64encode, urlsafe_b64encode
 
 from .models import SID
@@ -38,13 +38,13 @@ def get_timers(size: int) -> List[Dict[str, int]]:
     return tuple(map(lambda _: {"start": int(time()), "end": int(time() + 300)}, range(size)))
 
 
-def generate_sid(key: str, userId: str, ip: str, clientType: int = 100) -> str:
+def generate_sid(key: str, userId: str, ip: str, timestamp: int = int(time()), clientType: int = 100) -> str:
     data = {
         "1": None, 
         "0": 2, 
         "3": 0, 
         "2": userId, 
-        "5": int(time()), 
+        "5": timestamp, 
         "4": ip, 
         "6": clientType
     }
@@ -81,11 +81,11 @@ def decode_secret(secret: str) -> SID:
 
 
 def secret_expired(secret: str) -> bool:
-    return decode_secret(secret)[6] - 1209600 > int(time())
+    return int(time()) - decode_secret(secret)[6] > 1209600
 
 
-def sid_expired(secret: str) -> bool:
-    return decode_sid(secret).makeTime - 86400 > int(time())
+def sid_expired(sid: str) -> bool:
+    return int(time()) - decode_sid(sid).makeTime > 43200
     
 
 def is_json(myjson) -> bool:

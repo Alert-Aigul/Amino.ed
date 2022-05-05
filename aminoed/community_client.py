@@ -2,9 +2,9 @@ from asyncio import get_event_loop, new_event_loop
 from asyncio.events import AbstractEventLoop
 from base64 import b64encode
 from time import time, timezone
-from typing import Union, List
+from typing import Callable, Union, List
 from uuid import uuid4
-from aiohttp import ClientSession, ClientTimeout
+from aiohttp import ClientSession
 from json_minify import json_minify
 from ujson import dumps, loads
 
@@ -22,15 +22,17 @@ class CommunityClient(AminoHttpClient):
         info: Optional[Community] = None,
         settings: Optional[dict] = None,
         proxy: Optional[str] = None,
-        proxy_auth: Optional[str] = None
+        proxy_auth: Optional[str] = None,
+        timeout: Optional[int] = 60
     ) -> None:
         self._session: ClientSession = session or ClientSession(
-            timeout=ClientTimeout(60), json_serialize=dumps)
+            timeout=self.timeout, json_serialize=dumps)
         self._loop: AbstractEventLoop = loop or get_event_loop()
         
         self.comId = comId
         self.headers = settings or self.headers
-
+        
+        self.timeout: Optional[int] = timeout
         self.proxy: Optional[str] = proxy
         self.proxy_auth: Optional[str] = proxy_auth
         
@@ -58,6 +60,27 @@ class CommunityClient(AminoHttpClient):
     async def _close_session(self):
         if not self.session.closed:
             await self.session.close()
+    
+    # this is an experimental test function, 
+    # use it, but be aware that there may be problems with it.
+    async def with_proxy(self, proxy: str, func: Callable, *args):
+        client: 'CommunityClient' = getattr(sys.modules[__name__], "CommunityClient")(
+            self.comId, self._loop, None, self.info, self.headers, proxy, None, self.timeout)
+        
+        if func.__name__ in client.__dir__():
+            args = list(args)
+            
+            for arg in args:
+                if isinstance(arg, str):
+                    args[args.index(arg)] = f"'{arg}'"
+                else:
+                    args[args.index(arg)] = str(arg) 
+                    
+            func = f"client.{func.__name__}({','.join(args)})"
+            
+            return await eval(func)
+        else:
+            raise Exception("Its func not in aminoed.CommunityClient class.")
     
     async def get_invite_codes(self, status: str = "normal", start: int = 0, size: int = 25) -> List[InviteCode]:
         response = await self.get(f"/g/s-x{self.comId}/community/invitation?status={status}&start={start}&size={size}")
@@ -442,7 +465,7 @@ class CommunityClient(AminoHttpClient):
         else: data["publishToGlobal"] = ChatPublishTypes.OFF
 
         response = await self.post(f"/x{self.comId}/s/chat/thread", data)
-        return Thread(**(await response.json()))
+        return Thread(**(await response.json())["thread"])
     
     async def invite_to_chat(self, userId: Union[str, list], chatId: str) -> int:
         data = {

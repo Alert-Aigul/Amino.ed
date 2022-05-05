@@ -1,8 +1,9 @@
 import base64
+import collections.abc
 import locale
 import io
 
-from typing import List, Tuple, Union
+from typing import  Callable, List, Tuple, Union
 from uuid import uuid4
 from zipfile import ZIP_DEFLATED, ZipFile
 from aiohttp import ClientSession, ClientTimeout
@@ -25,15 +26,18 @@ class Client(AminoHttpClient):
         loop: Optional[AbstractEventLoop] = None,
         deviceId: Optional[str] = None,
         proxy: Optional[str] = None,
-        proxy_auth: Optional[str] = None
+        proxy_auth: Optional[str] = None,
+        timeout: Optional[int] = 60
     ) -> None:
             
         self._session: ClientSession = ClientSession(
             timeout=ClientTimeout(60), json_serialize=dumps)
         self._loop: AbstractEventLoop = loop or get_event_loop()
-
+        
+        self.timeout: Optional[int] = timeout
         self.proxy: Optional[str] = proxy
         self.proxy_auth: Optional[str] = proxy_auth
+        
         self.authenticated: bool = False
         self.deviceId: str = deviceId or self.deviceId
 
@@ -58,6 +62,37 @@ class Client(AminoHttpClient):
     async def _close_session(self):
         if not self.session.closed:
             await self.session.close()
+            
+    # this is an experimental test function, 
+    # use it, but be aware that there may be problems with it.
+    async def with_proxy(self, proxy: str, func: Callable, *args):
+        client: 'Client' = getattr(sys.modules[__name__],
+            "Client")(self._loop, self.deviceId, proxy)
+        
+        client.auth.deviceId = self.deviceId
+        client.websocket.auth = self.auth
+
+        client.account = self.auth.account
+        client.profile = self.auth.userProfile
+        
+        client.sid = self.auth.sid
+        client.userId = self.auth.auid
+        client.authenticated = client.sid != None
+        
+        if func.__name__ in client.__dir__():
+            args = list(args)
+            
+            for arg in args:
+                if isinstance(arg, str):
+                    args[args.index(arg)] = f"'{arg}'"
+                else:
+                    args[args.index(arg)] = str(arg) 
+                    
+            func = f"client.{func.__name__}({','.join(args)})"
+            
+            return await eval(func)
+        else:
+            raise Exception("Its func not in aminoed.Client class.")
 
     def execute(self):
         async def execute(callback):
@@ -95,7 +130,7 @@ class Client(AminoHttpClient):
         if not aminoId and not comId: raise NoCommunity()
 
         return CommunityClient(comId, self._loop, None,
-                community, self.headers, self.proxy, self.proxy_auth)
+                community, self.headers, self.proxy, self.proxy_auth, self.timeout)
     
     def start(self, email: str = None, password: str = None, sid: str = None) -> Auth:
 
@@ -462,7 +497,7 @@ class Client(AminoHttpClient):
         else: data["publishToGlobal"] = ChatPublishTypes.OFF
 
         response = await self.post(f"/g/s/chat/thread", data)
-        return Thread(**(await response.json()))
+        return Thread(**(await response.json())["thread"])
     
     async def join_chat(self, chatId: str) -> int:
         response = await self.post(f"/g/s/chat/thread/{chatId}/member/{self.userId}")

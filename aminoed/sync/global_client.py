@@ -2,7 +2,7 @@ import base64
 import locale
 import io
 
-from typing import List, Tuple, Union
+from typing import Callable, List, Tuple, Union
 from uuid import uuid4
 from zipfile import ZIP_DEFLATED, ZipFile
 from requests import Session
@@ -22,16 +22,15 @@ from .websocket import WebSocketClient
 
 class Client(AminoHttpClient):
     def __init__(self,
-        loop: Optional[AbstractEventLoop] = None,
         deviceId: Optional[str] = None,
-        proxy: Optional[str] = None,
-        proxy_auth: Optional[str] = None
+        proxies: Optional[dict] = None,
+        timeout: Optional[int] = 60
     ) -> None:
-            
         self._session: Session = Session()
-
-        self.proxy: Optional[str] = proxy
-        self.proxy_auth: Optional[str] = proxy_auth
+        
+        self.timeout: Optional[int] = timeout
+        self.proxies: Optional[dict] = proxies
+        
         self.authenticated: bool = False
         self.deviceId: str = deviceId or self.deviceId
 
@@ -48,6 +47,37 @@ class Client(AminoHttpClient):
 
     def __exit__(self, *args) -> None:
         return
+    
+    # this is an experimental test function, 
+    # use it, but be aware that there may be problems with it.
+    async def with_proxy(self, proxies: dict, func: Callable, *args):
+        client: 'Client' = getattr(sys.modules[__name__],
+            "Client")(self.deviceId, proxies, self.timeout)
+        
+        client.auth.deviceId = self.deviceId
+        client.websocket.auth = self.auth
+
+        client.account = self.auth.account
+        client.profile = self.auth.userProfile
+        
+        client.sid = self.auth.sid
+        client.userId = self.auth.auid
+        client.authenticated = client.sid != None
+        
+        if func.__name__ in client.__dir__():
+            args = list(args)
+            
+            for arg in args:
+                if isinstance(arg, str):
+                    args[args.index(arg)] = f"'{arg}'"
+                else:
+                    args[args.index(arg)] = str(arg) 
+                    
+            func = f"client.{func.__name__}({','.join(args)})"
+            
+            return eval(func)
+        else:
+            raise Exception("Its func not in aminoed.Client class.")
 
     def execute(self):
         def execute(callback):
@@ -72,8 +102,10 @@ class Client(AminoHttpClient):
     def community(self, comId: str = None, aminoId: str = None, 
             get_info: bool = False, community: Community = None) -> CommunityClient:
         if aminoId:
-            link = f"http://aminoapps.com/c/{aminoId}"
-            comId = self.get_link_info(link).community.comId
+            if "http://aminoapps.com/c/" not in aminoId:
+                aminoId = f"http://aminoapps.com/c/{aminoId}"
+                
+            comId = self.get_link_info(aminoId).community.comId
 
         if get_info:
             community: Community = self.get_community_info(comId)
@@ -81,7 +113,7 @@ class Client(AminoHttpClient):
         if not aminoId and not comId: raise NoCommunity()
 
         return CommunityClient(comId, self.session,
-                community, self.headers, self.proxies)
+                community, self.headers, self.proxies, self.timeout)
     
     def start(self, email: str = None, password: str = None, sid: str = None) -> Auth:
 
@@ -444,7 +476,7 @@ class Client(AminoHttpClient):
         else: data["publishToGlobal"] = ChatPublishTypes.OFF
 
         response = self.post(f"/g/s/chat/thread", data)
-        return Thread(**response.json())
+        return Thread(**response.json()["thread"])
     
     def join_chat(self, chatId: str) -> int:
         response = self.post(f"/g/s/chat/thread/{chatId}/member/{self.userId}")

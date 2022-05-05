@@ -176,7 +176,15 @@ class MessageTypes:
     TIMESTAMP: int =                           65281
     WELCOME_MESSAGE: int =                     65282
     INVITE_MESSAGE: int =                      65283
-
+    
+class EventTypes:
+    MESSAGE: str = "message"
+    OTHER:   str = "event"
+    
+    @classmethod
+    def type(self, t: int):
+        return f"t{t}"
+    
 
 def all(self: classmethod):
     normal_values: list = []

@@ -1,6 +1,6 @@
 from base64 import b64encode
 from time import time, timezone
-from typing import Union, List
+from typing import Callable, Union, List
 from uuid import uuid4
 from requests import Session
 from json_minify import json_minify
@@ -18,7 +18,8 @@ class CommunityClient(AminoHttpClient):
         session: Optional[Session] = None, 
         info: Optional[Community] = None,
         settings: Optional[dict] = None,
-        proxies: Optional[dict] = None
+        proxies: Optional[dict] = None,
+        timeout: Optional[int] = 60
     ) -> None:
         self._session: Session = session or Session()
         
@@ -26,6 +27,7 @@ class CommunityClient(AminoHttpClient):
         self.headers = settings or self.headers
 
         self.proxies: Optional[str] = proxies
+        self.timeout: Optional[int] = timeout
         
         self.profile: UserProfile = UserProfile(**{})
         self.info: Community = info or Community(**{})
@@ -35,6 +37,27 @@ class CommunityClient(AminoHttpClient):
 
     def __exit__(self, *args) -> None:
         return
+    
+    # this is an experimental test function, 
+    # use it, but be aware that there may be problems with it.
+    async def with_proxy(self, proxies: dict, func: Callable, *args):
+        client: 'CommunityClient' = getattr(sys.modules[__name__], "CommunityClient")(
+            self.comId, None, self.info, self.headers, proxies, self.timeout)
+        
+        if func.__name__ in client.__dir__():
+            args = list(args)
+            
+            for arg in args:
+                if isinstance(arg, str):
+                    args[args.index(arg)] = f"'{arg}'"
+                else:
+                    args[args.index(arg)] = str(arg) 
+                    
+            func = f"client.{func.__name__}({','.join(args)})"
+            
+            return eval(func)
+        else:
+            raise Exception("Its func not in aminoed.CommunityClient class.")
     
     def get_invite_codes(self, status: str = "normal", start: int = 0, size: int = 25) -> List[InviteCode]:
         response = self.get(f"/g/s-x{self.comId}/community/invitation?status={status}&start={start}&size={size}")
@@ -419,7 +442,7 @@ class CommunityClient(AminoHttpClient):
         else: data["publishToGlobal"] = ChatPublishTypes.OFF
 
         response = self.post(f"/x{self.comId}/s/chat/thread", data)
-        return Thread(**response.json())
+        return Thread(**response.json()["thread"])
     
     def invite_to_chat(self, userId: Union[str, list], chatId: str) -> int:
         data = {

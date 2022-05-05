@@ -8,7 +8,7 @@ def on_start():
     communities = client.get_account_communities(0, 100)
     print(f"Bot {client.profile.nickname} started on {len(communities)} communities.")
 
-@client.on("message")
+@client.on(aminoed.EventTypes.MESSAGE)
 def on_message(event: aminoed.Event):
     content = event.message.content
     chatId = event.message.chatId
