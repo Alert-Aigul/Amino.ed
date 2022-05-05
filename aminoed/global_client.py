@@ -84,8 +84,10 @@ class Client(AminoHttpClient):
     async def community(self, comId: str = None, aminoId: str = None, 
             get_info: bool = False, community: Community = None) -> CommunityClient:
         if aminoId:
-            link = f"http://aminoapps.com/c/{aminoId}"
-            comId = (await self.get_link_info(link)).community.comId
+            if "http://aminoapps.com/c/" not in aminoId:
+                aminoId = f"http://aminoapps.com/c/{aminoId}"
+                
+            comId = (await self.get_link_info(aminoId)).community.comId
 
         if get_info:
             community: Community = await self.get_community_info(comId)
