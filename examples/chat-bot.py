@@ -1,28 +1,23 @@
-import aminoed
+from aminoed import *
 
+bot = Client(prefix="!")
 
-client = aminoed.Client()
-
-@client.execute()
+@bot.execute()
 async def on_start():
-    communities = await client.get_account_communities(0, 100)
-    print(f"Bot {client.profile.nickname} started on {len(communities)} communities.")
+    print(f"Bot {bot.auth.user.nickname} working.")
+    
+@bot.command()
+async def help(event: Event):
+    await event.send("[c]Comands\n" \
+        "?chatmembers - members count.")
 
-@client.on(aminoed.EventTypes.MESSAGE)
-async def on_message(event: aminoed.Event):
-    content = event.message.content
-    chatId = event.message.chatId
-    messageId = event.message.messageId
-    
-    nickname = event.message.author.nickname
-    community = await client.community(event.comId)
-    
-    print(f"{nickname}: {content}")
-    
-    if content.startswith("!ping"):
-        await community.send_message(chatId, "pong!", replyTo=messageId)
-        
-    elif content.startswith("!chatid"):
-        await community.send_message(chatId, chatId, replyTo=messageId)
+@bot.command("1000-7", "")
+async def deadinside(event: Event):
+    await event.reply("993")
 
-client.start("email", "password")
+@bot.command("chatmembers", "?")
+async def chatmembers(event: Event):
+    chat = await event.client.get_chat_thread(event.threadId)
+    await event.send(f"Chat members count: {chat.membersCount}.")
+    
+bot.start("", "")

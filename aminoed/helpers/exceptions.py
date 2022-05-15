@@ -979,18 +979,17 @@ class InvalidChatBubble(Exception):
 
     def __init__(*args, **kwargs):
         Exception.__init__(*args, **kwargs)
-
-
-def CheckException(data):
-    try:
-        data = json.loads(data)
         
-        try:
-            api_code = data["api:statuscode"]
-        except:
-            raise Exception(data)
-    except json.decoder.JSONDecodeError:
-        api_code = 403
+        
+class HtmlError(Exception):
+    pass
+
+
+def CheckException(data):        
+    try:
+        api_code = data["api:statuscode"]
+    except:
+        raise Exception(data)
 
     if api_code == 0:
         return

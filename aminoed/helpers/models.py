@@ -1,7 +1,7 @@
 import sys
+
 from pydantic import BaseModel, Field
 from typing import List, Optional, Any, Union, Dict
-from datetime import datetime
 
 
 class RestrictionInfo(BaseModel):
@@ -25,8 +25,8 @@ class AvatarFrame(BaseModel):
 
     class OwnershipInfo(BaseModel):
         isAutoRenew:     Optional[bool]
-        expiredTime:     Optional[datetime]
-        createdTime:     Optional[datetime]
+        expiredTime:     Optional[str]
+        createdTime:     Optional[str]
         ownershipStatus: Optional[int]
 
     restrictionInfo:     Optional[RestrictionInfo]
@@ -45,8 +45,8 @@ class AvatarFrame(BaseModel):
     status:              Optional[int]
     name:                Optional[str]
     availableNdcIds:     Optional[List[int]]
-    modifiedTime:        Optional[datetime]
-    createdTime:         Optional[datetime]
+    modifiedTime:        Optional[str]
+    createdTime:         Optional[str]
     isNew:               Optional[bool]
     resourceUrl:         Optional[str]
 
@@ -67,12 +67,12 @@ class Account(BaseModel):
     class AdvancedSettings(BaseModel):
         analyticsEnabled: Optional[int]
 
-    extensions:            Optional[Extensions] = Extensions()
+    extensions:            Optional[Extensions]
     advancedSettings:      Optional[AdvancedSettings]
     username:              Optional[str]
     status:                Optional[int]
     uid:                   Optional[str]
-    modifiedTime:          Optional[datetime]
+    modifiedTime:          Optional[str]
     twitterID:             Optional[Any]
     activation:            Optional[int]
     phoneNumberActivation: Optional[int]
@@ -88,7 +88,7 @@ class Account(BaseModel):
     role:                  Optional[int]
     aminoIdEditable:       Optional[bool]
     aminoId:               Optional[str]
-    createdTime:           Optional[datetime]
+    createdTime:           Optional[str]
     email:                 Optional[str]
 
 
@@ -122,9 +122,9 @@ class UserProfile(BaseModel):
         fansCount:   Optional[int]
         monthlyFee:  Optional[int]
         pinned:      Optional[bool]
-        createdTime: Optional[datetime]
+        createdTime: Optional[str]
         
-    extensions:              Optional[Extensions] = Extensions()
+    extensions:              Optional[Extensions]
     influencerInfo:          Optional[InfluencerInfo]
     avatarFrame:             Optional[AvatarFrame]
     settings:                Optional[Settings]
@@ -132,8 +132,8 @@ class UserProfile(BaseModel):
     moodSticker:             Optional[Any]
     itemsCount:              Optional[int]
     consecutiveCheckInDays:  Optional[str]
-    userId:                  Optional[str] = Field(alias="uid")
-    modifiedTime:            Optional[datetime]
+    uid:                     Optional[str]
+    modifiedTime:            Optional[str]
     followingStatus:         Optional[int]
     onlineStatus:            Optional[int]
     accountMembershipStatus: Optional[int]
@@ -155,20 +155,20 @@ class UserProfile(BaseModel):
     role:                    Optional[int]
     commentsCount:           Optional[int]
     aminoId:                 Optional[str]
-    comId:                   Optional[int] = Field(alias="ndcId")
-    createdTime:             Optional[datetime]
+    ndcId:                   Optional[int]
+    createdTime:             Optional[str]
     visitPrivacy:            Optional[int]
     storiesCount:            Optional[int]
     blogsCount:              Optional[int]
 
 
 class Auth(BaseModel):
-    auid:        Optional[str]
-    account:     Optional[Account]
-    sid:         Optional[str]
-    secret:      Optional[str]
-    userProfile: Optional[UserProfile]
-    deviceId:    Optional[str]
+    auid:     Optional[str]
+    account:  Optional[Account]
+    sid:      Optional[str]
+    secret:   Optional[str]
+    user:     Optional[UserProfile] = Field(alias="userProfile")
+    deviceId: Optional[str]
 
 
 class Community(BaseModel):
@@ -392,10 +392,10 @@ class Community(BaseModel):
     communityHeat:                      Optional[int]
     endpoint:                           Optional[str]
     joinType:                           Optional[int]
-    modifiedTime:                       Optional[datetime]
+    modifiedTime:                       Optional[str]
     userAddedTopicList:                 Optional[List[UserAddedTopic]]
     content:                            Optional[Any]
-    comId:                              Optional[int] = Field(alias="ndcId")
+    ndcId:                              Optional[int]
     mediaList:                          Optional[Any]
     primaryLanguage:                    Optional[str]
     keywords:                           Optional[str]
@@ -409,7 +409,7 @@ class Community(BaseModel):
     activeInfo:                         Optional[Dict]
     templateId:                         Optional[int]
     tagline:                            Optional[str]
-    createdTime:                        Optional[datetime]
+    createdTime:                        Optional[str]
     extensions:                         Optional[Any]
     promotionalMediaList:               Optional[List[List]]
 
@@ -434,7 +434,7 @@ class ChatBubble(BaseModel):
     status:          Optional[int]
     resourceUrl:     Optional[str]
     name:            Optional[str]
-    modifiedTime:    Optional[datetime]
+    modifiedTime:    Optional[str]
     uid:             Optional[str]
     restrictionInfo: Optional[Any]
     coverImage:      Optional[str]
@@ -446,7 +446,7 @@ class ChatBubble(BaseModel):
     extensions:      Optional[Dict]
     deletable:       Optional[bool]
     templateId:      Optional[str]
-    createdTime:     Optional[datetime]
+    createdTime:     Optional[str]
     bubbleId:        Optional[str]
     bannerImage:     Optional[str]
     md5:             Optional[str]
@@ -495,19 +495,19 @@ class Thread(BaseModel):
 
     class Member(BaseModel):
         status:           Optional[int]
-        userId:           Optional[str] = Field(alias="uid")
+        uid:              Optional[str]
         membershipStatus: Optional[int]
         role:             Optional[int]
         nickname:         Optional[str]
         icon:             Optional[str]
 
     class LastMessage(BaseModel):
-        userId:      Optional[str] = Field(alias="uid")
+        uid:         Optional[str]
         type:        Optional[int]
         mediaType:   Optional[int]
         content:     Optional[str]
         messageId:   Optional[str]
-        createdTime: Optional[datetime]
+        createdTime: Optional[str]
         isHidden:    Optional[bool]
         mediaValue:  Optional[Any]
 
@@ -522,10 +522,10 @@ class Thread(BaseModel):
         language:                     Optional[str]
         membersCanInvite:             Optional[bool]
         bm:                           Optional[List]
-        creatoruserId:                Optional[str] = Field(alias="uid")
+        creatorUid:                   Optional[str] = Field(alias="uid")
         visibility:                   Optional[int]
         bannedMemberUidList:          Optional[List[str]]
-        lastMembersSummaryUpdateTime: Optional[int]
+        lastMembersSummaryUpstr: Optional[int]
         fansOnly:                     Optional[bool]
         announcement:                 Optional[str]
         channelType:                  Optional[int]
@@ -533,14 +533,14 @@ class Thread(BaseModel):
         vvChatJoinType:               Optional[int]
 
     author:             Optional[UserProfile]
-    extensions:         Optional[Extensions] = Extensions()
+    extensions:         Optional[Extensions]
     lastMessageSummary: Optional[LastMessage]
     tipInfo:            Optional[TipInfo]
     userAddedTopicList: Optional[Topic]
-    userId:             Optional[str] = Field(alias="uid")
+    uid:                Optional[str]
     membersSummary:     Optional[List[Member]]
     membersQuota:       Optional[int]
-    chatId:             Optional[str] = Field(alias="threadId")
+    threadId:           Optional[str]
     keywords:           Optional[str]
     membersCount:       Optional[int]
     strategyInfo:       Optional[Any]
@@ -550,16 +550,16 @@ class Thread(BaseModel):
     content:            Optional[str]
     needHidden:         Optional[bool]
     alertOption:        Optional[int]
-    lastReadTime:       Optional[datetime]
+    lastReadTime:       Optional[str]
     type:               Optional[int]
     status:             Optional[int]
     publishToGlobal:    Optional[int]
-    modifiedTime:       Optional[datetime]
+    modifiedTime:       Optional[str]
     condition:          Optional[int]
     icon:               Optional[str]
-    latestActivityTime: Optional[datetime]
-    comId:              Optional[int] = Field(alias="ndcId")
-    createdTime:        Optional[datetime]
+    latestActivityTime: Optional[str]
+    ndcId:              Optional[int]
+    createdTime:        Optional[str]
     chatBubbles:        Optional[Dict[str, ChatBubble]]
 
 
@@ -575,7 +575,7 @@ class Sticker(BaseModel):
     extensions:          Optional[Dict]
     usedCount:           Optional[int]
     mediumIconV2:        Optional[Any]
-    createdTime:         Optional[datetime]
+    createdTime:         Optional[str]
     icon:                Optional[str]
 
 
@@ -590,7 +590,7 @@ class Message(BaseModel):
         replyMessage:      Optional[Dict]
         replyMessageId:    Optional[str]
 
-    extensions:        Optional[Extensions] = Extensions()
+    extensions:        Optional[Extensions]
     includedInSummary: Optional[bool]
     author:            Optional[UserProfile]
     isHidden:          Optional[bool]
@@ -600,8 +600,8 @@ class Message(BaseModel):
     content:           Optional[str]
     chatBubbleId:      Optional[str]
     clientRefId:       Optional[int]
-    chatId:            Optional[str] = Field(alias="threadId")
-    createdTime:       Optional[datetime]
+    threadId:          Optional[str]
+    createdTime:       Optional[str]
     chatBubbleVersion: Optional[int]
     type:              Optional[int]
     uid:               Optional[str]
@@ -610,7 +610,7 @@ class Message(BaseModel):
     prevPageToken:     Optional[str]
 
     @property
-    def reply(self) -> 'Message':
+    def replies(self) -> 'Message':
         Message: 'Message' = getattr(sys.modules[__name__], 'Message')
 
         return Message(**(self.extensions.replyMessage or {
@@ -630,9 +630,9 @@ class Blog(BaseModel):
 
         status:         Optional[int]
         parentType:     Optional[int]
-        extensions:     Optional[Extensions] = Extensions()
+        extensions:     Optional[Extensions]
         title:          Optional[str]
-        createdTime:    Optional[datetime]
+        createdTime:    Optional[str]
         quizQuestionId: Optional[str]
         parentId:       Optional[str]
         mediaList:      Optional[List[List]]
@@ -665,7 +665,7 @@ class Blog(BaseModel):
     type:                  Optional[int]
     status:                Optional[int]
     globalCommentsCount:   Optional[int]
-    modifiedTime:          Optional[datetime]
+    modifiedTime:          Optional[str]
     quizQuestionList:      Optional[List[QuizQuestion]]
     widgetDisplayInterval: Optional[Any]
     totalPollVoteCount:    Optional[int]
@@ -673,10 +673,10 @@ class Blog(BaseModel):
     viewCount:             Optional[int]
     language:              Optional[str]
     author:                Optional[UserProfile]
-    extensions:            Optional[Extensions] = Extensions()
+    extensions:            Optional[Extensions]
     votesCount:            Optional[int]
-    comId:                 Optional[int] = Field(alias="ndcId")
-    createdTime:           Optional[datetime]
+    ndcId:                 Optional[int]
+    createdTime:           Optional[str]
     endTime:               Optional[Any]
     commentsCount:         Optional[int]
     nextPageToken:         Optional[str]
@@ -702,29 +702,29 @@ class Wiki(BaseModel):
     guestVotesCount:     Optional[int]
     status:              Optional[int]
     globalCommentsCount: Optional[int]
-    modifiedTime:        Optional[datetime]
+    modifiedTime:        Optional[str]
     itemId:              Optional[str]
-    extensions:          Optional[Extensions] = Extensions()
+    extensions:          Optional[Extensions]
     votesCount:          Optional[int]
-    comId:               Optional[int] = Field(alias="ndcId")
-    createdTime:         Optional[datetime]
+    ndcId:               Optional[int]
+    createdTime:         Optional[str]
     commentsCount:       Optional[int]
 
 
 class Comment(BaseModel):
-    modifiedTime:     Optional[datetime]
-    comId:            Optional[int] = Field(alias="ndcId")
+    modifiedTime:     Optional[str]
+    ndcId:            Optional[int]
     votedValue:       Optional[int]
     parentType:       Optional[int]
     commentId:        Optional[str]
-    parentComId:      Optional[int] = Field(alias="parentNdcId")
+    parentNdcId:      Optional[int]
     mediaList:        Optional[List[List]]
     votesSum:         Optional[int]
     author:           Optional[UserProfile]
     content:          Optional[str]
     extensions:       Optional[Dict]
     parentId:         Optional[str]
-    createdTime:      Optional[datetime]
+    createdTime:      Optional[str]
     subcommentsCount: Optional[int]
     type:             Optional[int]
 
@@ -732,7 +732,7 @@ class Comment(BaseModel):
 class Link(BaseModel):
     objectId:   Optional[str]
     targetCode: Optional[int]
-    comId:      Optional[int] = Field(alias="ndcId")
+    ndcId:      Optional[int]
     fullPath:   Optional[str]
     shortCode:  Optional[str]
     objectType: Optional[int]
@@ -766,7 +766,7 @@ class Transaction(BaseModel):
         description: Optional[str]
 
     extData:           Optional[ExtData]
-    userId:            Optional[str] = Field(alias="uid")
+    uid:               Optional[str]
     totalCoins:        Optional[int]
     originCoins:       Optional[int]
     bonusCoins:        Optional[int]
@@ -776,19 +776,19 @@ class Transaction(BaseModel):
     taxCoinsFloat:     Optional[float]
     bonusCoinsFloat:   Optional[float]
     totalCoinsFloat:   Optional[float]
-    createdTime:       Optional[datetime]
+    createdTime:       Optional[str]
     changedCoinsFloat: Optional[float]
     isPositive:        Optional[bool]
     originCoinsFloat:  Optional[float]
 
 
 class Membership(BaseModel):
-    userId:           Optional[str] = Field(alias="uid")
+    uid:              Optional[str]
     paymentType:      Optional[int]
-    expiredTime:      Optional[datetime]
-    renewedTime:      Optional[datetime]
-    modifiedTime:     Optional[datetime]
-    createdTime:      Optional[datetime]
+    expiredTime:      Optional[str]
+    renewedTime:      Optional[str]
+    modifiedTime:     Optional[str]
+    createdTime:      Optional[str]
     isAutoRenew:      Optional[bool]
     membershipStatus: Optional[int]
 
@@ -798,9 +798,9 @@ class InviteCode(BaseModel):
     duration:     Optional[int]
     invitationId: Optional[str]
     link:         Optional[str]
-    modifiedTime: Optional[datetime]
-    comId:        Optional[int] = Field(alias="ndcId")
-    createdTime:  Optional[datetime]
+    modifiedTime: Optional[str]
+    ndcId:        Optional[int]
+    createdTime:  Optional[str]
     inviteCode:   Optional[str]
 
 
@@ -811,7 +811,7 @@ class StickerCollection(BaseModel):
             icon:     Optional[str]
             endpoint: Optional[str]
             name:     Optional[str]
-            comId:    Optional[int] = Field(alias="ndcId")
+            ndcId:    Optional[int]
 
         iconSourceStickerId: Optional[str]
         originalAuthor:      Optional[UserProfile]
@@ -820,8 +820,8 @@ class StickerCollection(BaseModel):
     status:              Optional[int]
     isActivated:         Optional[bool]
     collectionType:      Optional[int]
-    userId:              Optional[str] = Field(alias="uid")
-    modifiedTime:        Optional[datetime]
+    uid:                 Optional[str]
+    modifiedTime:        Optional[str]
     isNew:               Optional[bool]
     bannerUrl:           Optional[str]
     smallIcon:           Optional[str]
@@ -834,8 +834,8 @@ class StickerCollection(BaseModel):
     collectionId:        Optional[str]
     description:         Optional[str]
     author:              Optional[UserProfile]
-    extensions:          Optional[Extensions] = Extensions()
-    createdTime:         Optional[datetime]
+    extensions:          Optional[Extensions]
+    createdTime:         Optional[str]
     isGloballyAvailable: Optional[bool]
     restrictionInfo:     Optional[RestrictionInfo]
 
@@ -846,7 +846,7 @@ class Lottery(BaseModel):
         parentType:  Optional[int]
         objectId:    Optional[str]
         parentId:    Optional[str]
-        createdTime: Optional[datetime]
+        createdTime: Optional[str]
         awardType:   Optional[int]
         refObject:   Optional[Dict]
         objectType:  Optional[int]
@@ -884,21 +884,21 @@ class CheckIn(BaseModel):
 
 class TippedUserSummary(BaseModel):
     tipper:           Optional[UserProfile]
-    lastTippedTime:   Optional[datetime]
+    lastTippedTime:   Optional[str]
     totalTippedCoins: Optional[float]
-    lastThankedTime:  Optional[datetime]
+    lastThankedTime:  Optional[str]
 
 
 class Bookmark(BaseModel):
     refObjectType:  Optional[int]
-    bookmarkedTime: Optional[datetime]
+    bookmarkedTime: Optional[str]
     refObjectId:    Optional[str]
     refObject:      Optional[Union[Blog, Wiki]]
 
 
 class QuizRanking(BaseModel):
     highestMode:    Optional[int]
-    modifiedTime:   Optional[datetime]
+    modifiedTime:   Optional[str]
     isFinished:     Optional[bool]
     hellIsFinished: Optional[bool]
     highestScore:   Optional[int]
@@ -913,11 +913,11 @@ class BlogCategory(BaseModel):
     blogsCount:   Optional[int]
     status:       Optional[int]
     type:         Optional[int]
-    modifiedTime: Optional[datetime]
+    modifiedTime: Optional[str]
     label:        Optional[str]
     style:        Optional[int]
     categoryId:   Optional[str]
-    createdTime:  Optional[datetime]
+    createdTime:  Optional[str]
     position:     Optional[int]
     icon:         Optional[str]
     content:      Optional[str]
@@ -939,7 +939,7 @@ class AdminLog(BaseModel):
     
     objectUrl:       Optional[str]
     operationName:   Optional[str]
-    createdTime:     Optional[datetime]
+    createdTime:     Optional[str]
     referTicketId:   Optional[str]
     extData:         Optional[Dict]
     objectId:        Optional[str]
@@ -949,7 +949,7 @@ class AdminLog(BaseModel):
     objectType:      Optional[int]
     operation:       Optional[int]
     operationDetail: Optional[str]
-    comId:           Optional[int] = Field(alias="ndcId")
+    ndcId:           Optional[int]
     operationLevel:  Optional[str]
     logId:           Optional[str]
 
@@ -961,7 +961,7 @@ class StoreItem(BaseModel):
 
     refObjectType:       Optional[int]
     refObjectId:         Optional[str]
-    createdTime:         Optional[datetime]
+    createdTime:         Optional[str]
     itemBasicInfo:       Optional[ItemBasicInfo]
     itemRestrictionInfo: Optional[RestrictionInfo]
     refObject:           Optional[Union[ChatBubble, AvatarFrame, StickerCollection]]
@@ -975,11 +975,13 @@ class StoreSections(BaseModel):
     storeSectionId:       Optional[str]
     previewStoreItemList: Optional[StoreItem]
 
-class Event(BaseModel):
-    comId:            Optional[int] = Field(alias="ndcId")
-    message:          Optional[Message] = Field(alias="chatMessage")
+
+class BaseEvent(Message):
+    ndcId:            Optional[int]
     alertOption:      Optional[int]
     membershipStatus: Optional[int]
+    __warned__:       Optional[bool] # 🤡
+
 
 class SID(BaseModel):
     signature:  Optional[str]
@@ -987,7 +989,7 @@ class SID(BaseModel):
     original:   Optional[str]
     data:       Optional[dict]
     version:    Optional[int] = Field(alias="0") # ?
-    userId:     Optional[str] = Field(alias="2")
+    uid:        Optional[str] = Field(alias="2")
     ip:         Optional[str] = Field(alias="4")
     makeTime:   Optional[int] = Field(alias="5")
     clientType: Optional[int] = Field(alias="6")

@@ -25,10 +25,14 @@ class FlagTypes:
     TROLLING: int =    109
     PORNOGRAPHY: int = 110
 
-class FileTypes:
-    AUDIO: str =  "audio/aac"
-    IMAGE: str =  "image/jpg"
-    STREAM: str = "application/octet-stream"
+class ContentTypes:
+    AAC: str = "audio/aac"
+    JPG: str = "image/jpg"
+    PNG: str = "image/png"
+
+    JSON: str =         "application/json; charset=utf-8"
+    URL_ENCODED: str =  "application/x-www-form-urlencoded"
+    OCTET_STREAM: str = "application/octet-stream"
 
 class SortingTypes:
     NEWEST: str = "newest"
@@ -176,18 +180,88 @@ class MessageTypes:
     TIMESTAMP: int =                           65281
     WELCOME_MESSAGE: int =                     65282
     INVITE_MESSAGE: int =                      65283
-    
+
 class EventTypes:
-    MESSAGE: str = "message"
-    OTHER:   str = "event"
+    ANY: str =                                 "any"
+    ACTION: str =                              "action"
+    NOTIFICATION: str =                        "notification"
     
-    @classmethod
-    def type(self, t: int):
-        return f"t{t}"
+    USER_TYPING_START: str =                   "user_typing_start"
+    USER_TYPING_END: str =                     "user_typing_end"
+    
+    MESSAGE: str =                             "message"
+    
+    TEXT_MESSAGE: str =                        "0:0"
+    IMAGE_MESSAGE: str =                       "0:100"
+    YOUTUBE_MESSAGE: str =                     "0:103"
+    STRIKE_MESSAGE: str =                      "1:0"
+    VOICE_MESSAGE: str =                       "2:110"
+    STICKER_MESSAGE: str =                     "3:113"
+    VIDEO_MESSAGE: str =                       "4:0"
+    
+    SHARE_EXURL: int =                         "50:0"
+    SHARE_USER: int =                          "51:0"
+
+    CALL_NO_ANSWERED: int =                    "52:0"
+    CALL_CANCELLED: int =                      "53:0"
+    CALL_DECLINED: int =                       "54:0"
+
+    VIDEO_CALL_NO_ANSWERED: int =              "55:0"
+    VIDEO_CALL_CANCELLED: int =                "56:0"
+    VIDEO_CALL_DECLINED: int =                 "57:0"
+
+    AVATAR_CALL_NO_ANSWERED: int =             "58:0"
+    AVATAR_CALL_CANCELLED: int =               "59:0"
+    AVATAR_CALL_DECLINED: int =                "60:0"
+
+    DELETE_MESSAGE: int =                      "100:0"
+    MEMBER_JOIN: int =                         "101:0"
+    MEMBER_QUIT: int =                         "102:0"
+    PRIVATE_CHAT_INIT: int =                   "103:0"
+      
+    BACKGROUND_CHANGE: int =                   "104:0"
+    TITLE_CHANGE: int =                        "105:0"
+    ICON_CHANGE: int =                         "106:0"
+
+    VOICE_CHAT_START: int =                    "107:0"
+    VIDEO_CHAT_START: int =                    "108:0"
+    AVATAR_CHAT_START: int =                   "109:0"
+
+    VOICE_CHAT_END: int =                      "110:0"
+    VIDEO_CHAT_END: int =                      "111:0"
+    AVATAR_CHAT_END: int =                     "112:0"
+    CONTENT_CHANGE: int =                      "113:0"
+
+    SCREENING_ROOM_START: int =                "114:0"
+    SCREENING_ROOM_END: int =                  "115:0"
+
+    ORGANIZER_TRANSFERRED: int =               "116:0"
+    FORCE_REMOVED_FROM_CHAT: int =             "117:0"
+
+    CHAT_REMOVED: int =                        "118:0"
+    ADMIN_DELETE_MESSAGE: int =                "119:0"
+
+    SEND_COINS: int =                          "120:0"
+    ANNOUNCEMENT_PIN: int =                    "121:0"
+
+    VV_CHAT_PERMISSION_OPEN_TO_EVERYONE: int = "122:0"
+    VV_CHAT_PERMISSION_INVITED: int =          "123:0"
+    VV_CHAT_PERMISSION_INVITE_ONLY: int =      "124:0"
+    
+    VIEW_ONLY_ENABLE: int =                    "125:0"
+    VIEW_ONLY_DISABLE: int =                   "126:0"
+    ANNOUNCEMENT_UNPIN: int =                  "127:0"
+    TIP_PERMISSION_ENABLE: int =               "128:0"
+    TIP_PERMISSION_DISABLE: int =              "129:0"
+    
+    TIMESTAMP: int =                           "65281:0"
+    WELCOME_MESSAGE: int =                     "65282:0"
+    INVITE_MESSAGE: int =                      "65283:0"
     
 
-def all(self: classmethod):
+def allTypes(self: classmethod):
     normal_values: list = []
     values: tuple = self.__dict__.items()
-    normal_values.extend([value[1] for value in values if isinstance(value[1], int)])
+    normal_values.extend([value[1] for value in values 
+                          if isinstance(value[1], int) or isinstance(value[1], str)])
     return normal_values

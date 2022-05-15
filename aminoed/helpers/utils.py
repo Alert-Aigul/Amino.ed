@@ -38,6 +38,7 @@ def get_timers(size: int) -> List[Dict[str, int]]:
     return tuple(map(lambda _: {"start": int(time()), "end": int(time() + 300)}, range(size)))
 
 
+
 def generate_sid(key: str, userId: str, ip: str, timestamp: int = int(time()), clientType: int = 100) -> str:
     data = {
         "1": None, 
@@ -126,3 +127,22 @@ async def get_cache(key: str, default: Any = None) -> Any:
 
 def properties(objects: list, name: str):
     return [getattr(o, name) for o in objects]
+
+
+def list_to_lists(list: list, values_per_list: int):
+    return [list[i:i +values_per_list] for i in range(0, len(list),values_per_list)]
+
+
+def jsonify(**kwargs) -> Dict:
+    return kwargs
+
+def get_event_loop() -> asyncio.AbstractEventLoop:
+    try:
+        loop = asyncio.get_running_loop()  
+    except RuntimeError:
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            
+    return loop

@@ -3,7 +3,7 @@ import aminoed
 
 @aminoed.run_with_client()
 async def main(client: aminoed.Client):
-    await client.cached_login("email", "password")
+    await client.login("email", "password")
     
     chats = await client.get_chat_threads()
     
