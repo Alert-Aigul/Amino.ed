@@ -12,7 +12,7 @@ from json_minify import json_minify
 
 from .helpers.models import *
 
-from .helpers.types import ChatPublishTypes, ContentTypes, FeaturedTypes, ObjectTypes, RepairTypes, SourceTypes
+from .helpers.types import ChatPublishTypes, ContentTypes, FeaturedTypes, ObjectTypes, RepairTypes, SourceTypes, UserTypes
 from .helpers.utils import generate_signature, generate_device, jsonify, decode_sid
 from .helpers.exceptions import CheckException, SpecifyType, HtmlError
 
@@ -47,6 +47,8 @@ class HttpClient:
 
         user_agent = "Amino.ed Python/{0[0]}.{0[1]} Bot"
         self.user_agent: str = user_agent.format(sys.version_info)
+        
+        self.get_all_users
 
     async def request(self, method: str, path: str, **kwargs):
         url = f"{self.API}/{self.ndc_id}/s{path}"
@@ -862,7 +864,7 @@ class HttpClient:
 
     async def get_link_info(self, code: str) -> Link:
         response = await self.request("GET", f"/link-resolution?q={code}")
-        return Link(**(v := response["linkInfoV2"]["extensions"]), **v["linkInfo"])
+        return Link(**(ext := response["linkInfoV2"]["extensions"]), **ext.get("linkInfo", {}))
 
     async def get_from_id(self, object_id: str, object_type: int, ndc_id: str = None) -> Link:
         data = jsonify(objectId=object_id, targetCode=1, objectType=object_type)
@@ -880,10 +882,26 @@ class HttpClient:
         return (await self.request("GET",
             f"/store/subscription?objectType={ObjectTypes.SUBSCRIPTION}&start={start}&size={size}"))["storeSubscriptionItemList"]
 
-    async def get_all_users(self, start: int = 0, size: int = 25):
-        response = await self.request("GET", f"/user-profile?type=recent&start={start}&size={size}")
-        return list(map(lambda o: UserProfile(**o), response))
-
+    async def get_all_users(self, start: int = 0, size: int = 25) -> List[UserProfile]:
+        response = await self.request("GET", f"/user-profile?type={UserTypes.RECENT}&start={start}&size={size}")
+        return list(map(lambda o: UserProfile(**o), response["userProfileList"]))
+    
+    async def get_community_leaders(self, start: int = 0, size: int = 25) -> List[UserProfile]:
+        response = await self.request("GET", f"/user-profile?type={UserTypes.LEADERS}&start={start}&size={size}")
+        return list(map(lambda o: UserProfile(**o), response["userProfileList"]))
+    
+    async def get_community_curators(self, start: int = 0, size: int = 25) -> List[UserProfile]:
+        response = await self.request("GET", f"/user-profile?type={UserTypes.CURATORS}&start={start}&size={size}")
+        return list(map(lambda o: UserProfile(**o), response["userProfileList"]))
+    
+    async def get_banned_users(self, start: int = 0, size: int = 25) -> List[UserProfile]:
+        response = await self.request("GET", f"/user-profile?type={UserTypes.BANNED}&start={start}&size={size}")
+        return list(map(lambda o: UserProfile(**o), response["userProfileList"]))
+    
+    async def get_featured_users(self, start: int = 0, size: int = 25) -> List[UserProfile]:
+        response = await self.request("GET", f"/user-profile?type={UserTypes.FEATURED}d&start={start}&size={size}")
+        return list(map(lambda o: UserProfile(**o), response["userProfileList"])) 
+    
     async def accept_host(self, thread_id: str, request_id: str):
         return await self.request("POST", f"/chat/thread/{thread_id}/transfer-organizer/{request_id}/accept")
 
@@ -1291,9 +1309,7 @@ class HttpClient:
         response = await self.request("GET", f"/feed/blog-disabled?start={start}&size={size}")
         return list(map(lambda o: Blog(**o), response["blogList"]))
 
-    async def get_featured_users(self, start: int = 0, size: int = 25) -> List[UserProfile]:
-        response = await self.request("GET", f"/user-profile?type=featured&start={start}&size={size}")
-        return list(map(lambda o: UserProfile(**o), response["userProfileList"])) 
+    
 
     async def review_quiz_questions(self, quiz_id: str) -> List[Blog.QuizQuestion]:
         response = await self.request("GET", f"/blog/{quiz_id}?action=review")

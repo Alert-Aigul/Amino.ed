@@ -113,6 +113,7 @@ class ObjectTypes:
 
     VV_CHAT: int =                120
     P2A: int =                    121
+    SUBSCRIPTION: int =           122
     AMINO_VIDEO: int =            123
 
 class MessageTypes:
