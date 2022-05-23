@@ -1,8 +1,10 @@
 import io
+from locale import strcoll
 import sys
+from types import CoroutineType
 
 from ujson import loads
-from typing import Callable, Optional, Tuple
+from typing import Callable, Coroutine, Optional, Tuple
 
 from asyncio import AbstractEventLoop, sleep
 from zipfile import ZIP_DEFLATED, ZipFile
@@ -48,6 +50,12 @@ class Client(HttpClient):
         if not self._websocket:
             self._websocket = AminoWebSocket(self.auth)
         return self._websocket
+
+    def set_auth(self, auth: Auth):
+        self.auth = auth
+        self.websocket.auth = auth
+        
+        return self   
             
     async def __aenter__(self) -> 'Client':
         return self
@@ -62,37 +70,40 @@ class Client(HttpClient):
         if not self.session.closed:
             await self.session.close()
     
-    # this is an experimental test function, 
-    # use it, but be aware that there may be problems with it.
-    async def with_proxy(self, proxy: str, func: Callable, *args):
-        client: 'Client' = getattr(sys.modules[__name__],
-            "Client")(self.loop, self.device_id, proxy)
+    def with_proxy(
+        self, func,
+        proxy: str = None, 
+        proxy_auth: str = None, 
+        timeout: int = None
+    ):
         
-        client.auth = self.auth
-        client.device_id = self.device_id
-        client.websocket.auth = self.auth
+        async def wrapper(*args, **kwargs):
+            nonlocal timeout
+                
+            if func.__name__  not in self.__dir__():
+                raise Exception("Its not a aminoed.Client class method.")
+            
+            if not asyncio.iscoroutinefunction(func):
+                raise Exception("Its not a async function.")
+
+            ndc_id = self.ndc_id
+            device_id = self.device_id
+            timeout = timeout or self.timeout.total
+                        
+            ClientClass: "Client" = getattr(sys.modules[__name__], "Client")
+            client: "Client" = ClientClass(ndc_id, device_id, None, proxy, proxy_auth, timeout)
+   
+            client.auth = self.auth
         
-        if func.__name__ in client.__dir__():
-            args = list(args)
-            
-            for arg in args:
-                if isinstance(arg, str):
-                    args[args.index(arg)] = f"'{arg}'"
-                else:
-                    args[args.index(arg)] = str(arg) 
-                    
-            func = f"client.{func.__name__}({','.join(args)})"
-            
-            return await eval(func)
-        else:
-            raise Exception("Its func not in aminoed.Client class.")
+            return await (client.__getattribute__(func.__name__)(*args, **kwargs))
+        
+        return wrapper
 
     def execute(
         self,
         looping: bool = False,
         start_sleep: float = 0,
-        end_sleep: float = 0,
-        func = None
+        end_sleep: float = 0
     ):
         def _execute(callback):
             if self.auth.sid is not None:
@@ -109,13 +120,13 @@ class Client(HttpClient):
             
             self.callbacks_to_execute.append(execute)
             
-        return _execute if not func else _execute(func)
+        return _execute
 
-    def on(self, event: str, func = None):        
+    def on(self, event: str):        
         def callback(callback):
             self.websocket.emitter.on(event, callback)
             
-        return callback if not func else callback(func)
+        return callback
     
     def command(
         self, 
@@ -152,11 +163,12 @@ class Client(HttpClient):
         if not aminoId and not ndc_id:
             raise NoCommunity()
         
-        self.ndc_id = ndc_id
+        if ndc_id:
+            self.ndc_id = ndc_id
         
         if aminoId:
-            if "http://aminoapps.com/c/" not in aminoId:
-                aminoId = f"http://aminoapps.com/c/{aminoId}"
+            if "https://aminoapps.com/c/" not in aminoId:
+                aminoId = f"https://aminoapps.com/c/{aminoId}"
                 
             self.ndc_id = (await self.get_link_info(aminoId)).community.ndcId
 
@@ -188,19 +200,23 @@ class Client(HttpClient):
         password: str = None
     ) -> Auth:
         if (account := await get_cache(email, False)):
-            if not sid_expired(account["auth"]["sid"]):
-                await self.login_sid(account["auth"]["sid"])
+            auth = Auth(**account["auth"])
+            
+            if not sid_expired(auth.sid):
+                await self.login_sid(auth.sid)
                 
-                self.auth.user = UserProfile(**account["auth"]["user"])
-                self.auth.account = Account(**account["auth"]["account"])
+                self.auth.user = auth.user
+                self.auth.account = auth.account
                 
                 return self.auth
             
-            if not secret_expired(account["auth"]["secret"]):
-                auth = await self.login_email(email, account["auth"]["secret"])
+            # if not secret_expired(auth.secret):
+            #     auth = await self.login_email(email, auth.secret)
                 
-            else:
-                auth = await self.login(email, password)
+            # else:
+            #     auth = await self.login(email, password)
+            
+            auth = await self.login(email, password)
                 
             await set_cache(email, jsonify(
                 auth=auth.dict(),

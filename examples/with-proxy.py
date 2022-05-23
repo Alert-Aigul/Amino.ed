@@ -2,11 +2,9 @@ import aminoed
 
 @aminoed.run_with_client()
 async def main(client: aminoed.Client):
-    ip = await client.with_proxy(
-        "proxy", # one argument - your proxy 
-        client.session.request,  # one argument - two atrgument function
-        "GET", # this and other arguments - client.session.request arguments
-        "http://api.ipify.org/" 
-    )
+    auth = await client.with_proxy(
+        client.login, "proxy")("email", "password")
     
-    print(await ip.text())
+    client.set_auth(auth)
+    
+    print(aminoed.decode_sid(client.auth.sid).ip)

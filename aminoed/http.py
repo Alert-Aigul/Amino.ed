@@ -30,25 +30,23 @@ class HttpClient:
     ) -> None:
         self._session: Optional[ClientSession] = session
 
-        self._ndc_id: str = "g"
-        self.auth: Auth = Auth(**{})
+        self.ndc_id: str = "g"
+        self._auth: Auth = Auth(**{})
         self.device_id: str = generate_device()
         
         if ndc_id is not None:
-            self.ndc_id: str = f"x{ndc_id}"
+            self.ndc_id: str = ndc_id
             
         if timeout is not None:
-            self.timeout: Optional[int] = ClientTimeout(timeout)
+            self.timeout: Optional[ClientTimeout] = ClientTimeout(timeout)
         else:
-            self.timeout: Optional[int] = ClientTimeout(5)
+            self.timeout: Optional[ClientTimeout] = ClientTimeout(5)
             
         self.proxy: Optional[str] = proxy
         self.proxy_auth: Optional[BasicAuth] = proxy_auth
 
         user_agent = "Amino.ed Python/{0[0]}.{0[1]} Bot"
         self.user_agent: str = user_agent.format(sys.version_info)
-        
-        self.get_all_users
 
     async def request(self, method: str, path: str, **kwargs):
         url = f"{self.API}/{self.ndc_id}/s{path}"
@@ -124,13 +122,26 @@ class HttpClient:
     def ndc_id(self, ndc_id: Union[str, int]) -> None:
         ndc_id = str(ndc_id)
         
-        if "x" not in ndc_id:
+        if "g" == ndc_id:
+            pass
+        
+        elif "x" not in ndc_id:
             ndc_id = f"x{ndc_id}"
             
-        if ndc_id == "global":
+        elif ndc_id == "global":
             ndc_id = "g"
         
         self._ndc_id = ndc_id
+        
+    @property
+    def auth(self) -> Auth:
+        if not self._auth:
+            self._auth = Auth({})
+        return self._auth
+    
+    @auth.setter
+    def auth(self, auth: Auth):
+        self._auth = auth 
 
     async def login_email(self, email: str, password: str) -> Auth:
         data = jsonify(
@@ -188,7 +199,7 @@ class HttpClient:
     
     async def get_user_info(self, uid: str) -> UserProfile:
         response = await self.request("GET", f"/user-profile/{uid}")
-        return UserProfile(self, **response["userProfile"])
+        return UserProfile(**response["userProfile"])
 
     async def register(self, nickname: str, email: str,
                     password: str, code: str = None) -> Auth:
@@ -305,7 +316,7 @@ class HttpClient:
 
         return await self.request("POST", "/device", json=data)
     
-    async def upload_media(self, file: bytes, content_type: str) -> str:
+    async def upload_media(self, file: bytes, content_type: str = ContentTypes.JPG) -> str:
         response = await self.request("POST", "/media/upload",
                 data=file, content_type=content_type)
 
@@ -389,12 +400,12 @@ class HttpClient:
     async def get_message_info(self, thread_id: str, message_id: str):
         return Message(**(await self.request("GET", f"/chat/thread/{thread_id}/message/{message_id}"))["message"])
 
-    async def get_chat_messages(self, thread_id: str, size: int = 25, page_token: str = None) -> Message:
+    async def get_chat_messages(self, thread_id: str, size: int = 25, page_token: str = None) -> List[Message]:
         if not page_token: params = f"v=2&pagingType=t&size={size}"
         else: params = f"v=2&pagingType=t&pageToken={page_token}&size={size}"
 
         response = await self.request("GET", f"/chat/thread/{thread_id}/message?{params}")
-        return list(map(lambda o, p: Message(**o, **p), (json := response)["messageList"], json["paging"]))
+        return list(map(lambda o: Message(**o, **response.get("paging", {})),  response["messageList"]))
     
     async def get_user_following(self, uid: str, start: int = 0, size: int = 25) -> List[UserProfile]:
         response = await self.request("GET", f"/user-profile/{uid}/joined?start={start}&size={size}")
@@ -445,7 +456,7 @@ class HttpClient:
                 embed_image = [[100, embed_image, None]]
 
             elif isinstance(embed_image, bytes):
-                embed_image = [[100, await self.upload_media(embed_image, ContentTypes.PNG), None]]
+                embed_image = [[100, await self.upload_media(embed_image), None]]
 
             else:
                 raise SpecifyType()
@@ -559,7 +570,7 @@ class HttpClient:
 
     async def set_chat_background(self, background_image: Union[str, bytes], thread_id: str) -> int:
         if isinstance(background_image, bytes):
-            data = jsonify(media=[100, await self.upload_media(background_image, ContentTypes.PNG, None)])
+            data = jsonify(media=[100, await self.upload_media(background_image), None])
 
         elif isinstance(background_image, str):
             data = jsonify(media=[100, background_image, None])
@@ -713,7 +724,7 @@ class HttpClient:
                 data["icon"] = icon
 
             elif isinstance(icon, bytes):
-                data["icon"] = await self.upload_media(icon, ContentTypes.PNG)
+                data["icon"] = await self.upload_media(icon)
 
             else:
                 raise SpecifyType()
@@ -723,7 +734,7 @@ class HttpClient:
                 data["extensions"] = jsonify(style=jsonify(backgroundMediaList=[[100, background_image, None, None, None]]))
 
             elif isinstance(background_image, bytes):
-                background_image = await self.upload_media(background_image, ContentTypes.PNG)
+                background_image = await self.upload_media(background_image)
                 data["extensions"] = jsonify(style=jsonify(backgroundMediaList=[[100, background_image, None, None, None]]))
 
             else:
@@ -918,14 +929,14 @@ class HttpClient:
 
     async def get_chat_bubble_templates(self, start: int = 0, size: int = 25) -> List[ChatBubble]:
         response = await self.request("GET", f"/chat/chat-bubble/templates?start={start}&size={size}")
-        return list(map(lambda o: UserProfile(**o), response["templateList"]))
+        return list(map(lambda o: ChatBubble(**o), response["templateList"]))
     
     async def generate_chat_bubble(self, bubble: bytes = None, template_id: str = "949156e1-cc43-49f0-b9cf-3bbbb606ad6e") -> ChatBubble:
-        response = await self.request("POST", f"/chat/chat-bubble/templates/{template_id}/generate", bubble)
+        response = await self.request("POST", f"/chat/chat-bubble/templates/{template_id}/generate", bubble, content_type=ContentTypes.OCTET_STREAM)
         return ChatBubble(**response["chatBubble"])
     
     async def edit_chat_bubble(self, bubble_id: str, bubble: bytes) -> ChatBubble:
-        response = await self.request("POST", f"/chat/chat-bubble/{bubble_id}", data=bubble)
+        response = await self.request("POST", f"/chat/chat-bubble/{bubble_id}", data=bubble, content_type=ContentTypes.OCTET_STREAM)
         return ChatBubble(**response["chatBubble"])
 
     async def get_avatar_frames(self, start: int = 0, size: int = 25):
@@ -984,10 +995,10 @@ class HttpClient:
             categoriesList: list = None, background_color: str = None, fans_only: bool = False, extensions: Dict = None) -> int:
 
         if caption_list and image_list:
-            mediaList = [[100, self.upload_media(image, ContentTypes.PNG), caption] for image, caption in zip(image_list, caption_list)]
+            mediaList = [[100, await self.upload_media(image), caption] for image, caption in zip(image_list, caption_list)]
 
         elif image_list:
-            mediaList = [[100, self.upload_media(image, ContentTypes.PNG), None] for image in image_list]
+            mediaList = [[100, await self.upload_media(image), None] for image in image_list]
 
         data = jsonify(
             address=None,
@@ -1014,7 +1025,7 @@ class HttpClient:
     async def post_wiki(self, title: str, content: str, icon: str = None, imageList: list = None,
             keywords: str = None, background_color: str = None, fans_only: bool = False) -> int:
 
-        mediaList = [[100, self.upload_media(image, ContentTypes.PNG), None] for image in imageList]
+        mediaList = [[100, await self.upload_media(image), None] for image in imageList]
 
         data = {
             "label": title,
@@ -1039,7 +1050,7 @@ class HttpClient:
 
     async def edit_blog(self, blogId: str, title: str = None, content: str = None, imageList: list = None, 
             categoriesList: list = None, background_color: str = None, fans_only: bool = False) -> int:
-        mediaList = [[100, self.upload_media(image, ContentTypes.PNG), None] for image in imageList]
+        mediaList = [[100, await self.upload_media(image), None] for image in imageList]
 
         data = jsonify(
             address=None,
@@ -1270,7 +1281,7 @@ class HttpClient:
         else: params = f"v=2&pagingType=t&pageToken={page_token}&start={start}&size={size}"
         
         response = await self.request("GET", f"/feed/blog-all?{params}")
-        return list(map(lambda o, p: Blog(**o, **p), (data := response)["blogList"], data["paging"]))
+        return list(map(lambda o: Message(**o, **response.get("paging", {})),  response["blogList"]))
     
     async def get_notifications(self, start: int = 0, size: int = 25) -> Dict:
         return await self.request("GET", f"/notification?pagingType=t&start={start}&size={size}")["notificationList"]
