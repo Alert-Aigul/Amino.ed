@@ -1,3 +1,5 @@
+GLOBAL_ID = 0
+
 class CallTypes:
     NONE: int =        0
     VOICE: int =       1

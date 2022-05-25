@@ -146,3 +146,12 @@ def get_event_loop() -> asyncio.AbstractEventLoop:
             loop = asyncio.new_event_loop()
             
     return loop
+
+def get_ndc(ndc_id) -> str:
+    if (ndc_id == 0):
+        return "/g/s"
+    
+    elif (ndc_id > 0):
+        return f"/x{ndc_id}/s"
+    
+    return f"/g/s-x{abs(ndc_id)}"

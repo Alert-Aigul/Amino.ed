@@ -12,8 +12,8 @@ from json_minify import json_minify
 
 from .helpers.models import *
 
-from .helpers.types import ChatPublishTypes, ContentTypes, FeaturedTypes, ObjectTypes, RepairTypes, SourceTypes, UserTypes
-from .helpers.utils import generate_signature, generate_device, jsonify, decode_sid
+from .helpers.types import GLOBAL_ID, ChatPublishTypes, ContentTypes, FeaturedTypes, ObjectTypes, RepairTypes, SourceTypes, UserTypes
+from .helpers.utils import generate_signature, generate_device, get_ndc, jsonify, decode_sid
 from .helpers.exceptions import CheckException, SpecifyType, HtmlError
 
 
@@ -22,7 +22,7 @@ class HttpClient:
 
     def __init__(
         self,
-        ndc_id: Optional[str] = None,
+        ndc_id: Optional[int] = None,
         session: Optional[ClientSession] = None,
         proxy: Optional[str] = None,
         proxy_auth: Optional[BasicAuth] = None,
@@ -30,28 +30,28 @@ class HttpClient:
     ) -> None:
         self._session: Optional[ClientSession] = session
 
-        self.ndc_id: str = "g"
+        self.ndc_id: int = GLOBAL_ID
         self._auth: Auth = Auth(**{})
         self.device_id: str = generate_device()
         
         if ndc_id is not None:
-            self.ndc_id: str = ndc_id
+            self.ndc_id: int = ndc_id
             
-        if timeout is not None:
-            self.timeout: Optional[ClientTimeout] = ClientTimeout(timeout)
-        else:
-            self.timeout: Optional[ClientTimeout] = ClientTimeout(5)
+        self.timeout: Optional[ClientTimeout] = ClientTimeout(timeout or 5)
             
         self.proxy: Optional[str] = proxy
         self.proxy_auth: Optional[BasicAuth] = proxy_auth
 
         user_agent = "Amino.ed Python/{0[0]}.{0[1]} Bot"
         self.user_agent: str = user_agent.format(sys.version_info)
+        
+        self.join_community
 
     async def request(self, method: str, path: str, **kwargs):
-        url = f"{self.API}/{self.ndc_id}/s{path}"
-
-        if kwargs.get("full_url", False):
+        ndc_id = kwargs.pop("ndc_id", self.ndc_id)
+        url = f"{self.API}{get_ndc(ndc_id)}{path}"
+            
+        if kwargs.pop("full_url", None):
             url = kwargs.get("full_url", url)
 
         headers: Dict[str, str] = {
@@ -115,21 +115,13 @@ class HttpClient:
     @property
     def ndc_id(self) -> str:
         if not self._ndc_id:
-            self._ndc_id = "g"
+            self._ndc_id = GLOBAL_ID
         return self._ndc_id
     
     @ndc_id.setter
-    def ndc_id(self, ndc_id: Union[str, int]) -> None:
-        ndc_id = str(ndc_id)
-        
-        if "g" == ndc_id:
-            pass
-        
-        elif "x" not in ndc_id:
-            ndc_id = f"x{ndc_id}"
-            
-        elif ndc_id == "global":
-            ndc_id = "g"
+    def ndc_id(self, ndc_id: int) -> None:
+        if isinstance(ndc_id, str):
+            raise Exception("ndc_id can only be a int")
         
         self._ndc_id = ndc_id
         
@@ -143,31 +135,31 @@ class HttpClient:
     def auth(self, auth: Auth):
         self._auth = auth 
 
-    async def login_email(self, email: str, password: str) -> Auth:
+    async def login_email(self, email: str, password: str, device_id: str = None) -> Auth:
         data = jsonify(
             email=email,
             secret=password,
             clientType=100,
-            deviceID=self.device_id,
+            deviceID=device_id or self.device_id,
             action="normal"
         )
 
-        response = Auth(**(await self.request("POST", "/auth/login", json=data)))
+        response = Auth(**(await self.request("POST", "/auth/login", json=data, ndc_id=GLOBAL_ID)))
         self.auth = response
         self.auth.deviceId = self.device_id
 
         return self.auth
     
-    async def login_phone(self, phoneNumber: str, password: str) -> Auth:
+    async def login_phone(self, phoneNumber: str, password: str, device_id: str = None) -> Auth:
         data = jsonify(
             phoneNumber=phoneNumber,
             secret=password,
             clientType=100,
-            deviceID=self.device_id,
+            deviceID=device_id or self.device_id,
             action="normal"
         )
 
-        response = Auth(**(await self.request("POST", "/auth/login", json=data)))
+        response = Auth(**(await self.request("POST", "/auth/login", json=data, ndc_id=GLOBAL_ID)))
         self.auth = response
         self.auth.deviceId = self.device_id
 
@@ -188,13 +180,13 @@ class HttpClient:
             clientType=100
         )
 
-        response = await self.request("POST", "/auth/logout", json=data)
+        response = await self.request("POST", "/auth/logout", json=data, ndc_id=GLOBAL_ID)
         self.auth = Auth(**{}) if remove_auth else self.auth
 
         return response
     
     async def get_account_info(self) -> Account:
-        response = await self.request("GET", "/account")
+        response = await self.request("GET", "/account", ndc_id=GLOBAL_ID)
         return Account(**response["account"])
     
     async def get_user_info(self, uid: str) -> UserProfile:
@@ -222,7 +214,7 @@ class HttpClient:
                 type=1, identify=email
             )
 
-        return Auth(**(await self.request("POST", "/auth/register", json=data)))
+        return Auth(**(await self.request("POST", "/auth/register", json=data, ndc_id=GLOBAL_ID)))
     
     async def restore(self, email: str, password: str) -> Dict:
         data = jsonify(
@@ -232,13 +224,13 @@ class HttpClient:
         )
 
         return await self.request("POST",
-            "/account/delete-request/cancel", json=data)
+            "/account/delete-request/cancel", json=data, ndc_id=GLOBAL_ID)
     
     async def configure(self, age: int, gender_type: int) -> Dict:
         data = jsonify(age=age, gender=gender_type)
 
         return await self.request("POST",
-            "/persona/profile/basic", json=data)
+            "/persona/profile/basic", json=data, ndc_id=GLOBAL_ID)
     
     async def verify(self, email: str, code: str) -> Dict:
         data = jsonify(
@@ -249,7 +241,7 @@ class HttpClient:
         )
 
         return await self.request("POST",
-            "/auth/check-security-validation", json=data)
+            "/auth/check-security-validation", json=data, ndc_id=GLOBAL_ID)
 
     async def request_verify_code(self, email: str, reset_password: bool = False) -> int:
         data = jsonify(
@@ -265,7 +257,7 @@ class HttpClient:
             ))
 
         return await self.request("POST",
-            "/auth/request-security-validation", json=data)
+            "/auth/request-security-validation", json=data, ndc_id=GLOBAL_ID)
 
     
     async def activate_account(self, email: str, code: str) -> int:
@@ -276,7 +268,7 @@ class HttpClient:
         )
 
         return await self.request("POST",
-            "/auth/activate-email", json=data)
+            "/auth/activate-email", json=data, ndc_id=GLOBAL_ID)
 
     
     async def delete_account(self, password: str) -> int:
@@ -286,7 +278,7 @@ class HttpClient:
         )
 
         return await self.request("POST",
-            "/account/delete-request", json=data)
+            "/account/delete-request", json=data, ndc_id=GLOBAL_ID)
     
     async def change_password(self, email: str, password: str, code: str) -> int:
         data = jsonify(
@@ -302,7 +294,7 @@ class HttpClient:
             deviceID=self.device_id
         )
 
-        return await self.request("POST", "/auth/reset-password", json=data)
+        return await self.request("POST", "/auth/reset-password", json=data, ndc_id=GLOBAL_ID)
 
     async def check_device(self, device_id: str) -> int:
         data = jsonify(
@@ -314,7 +306,7 @@ class HttpClient:
             locale=localeconv()[0]
         )
 
-        return await self.request("POST", "/device", json=data)
+        return await self.request("POST", "/device", json=data, ndc_id=GLOBAL_ID)
     
     async def upload_media(self, file: bytes, content_type: str = ContentTypes.JPG) -> str:
         response = await self.request("POST", "/media/upload",
@@ -330,32 +322,31 @@ class HttpClient:
         return response["mediaValue"]
     
     async def get_eventlog(self, language: str = "en") -> Dict:
-        return await self.request("GET", f"/eventlog/profile?language={language}")
+        return await self.request("GET", f"/eventlog/profile?language={language}", ndc_id=GLOBAL_ID)
     
-    async def get_community_info(self, ndc_id: str = None) -> Community:
-        response = await self.request("GET",
-            f"-x{ndc_id or self.ndc_id}/community/info")
+    async def get_community_info(self, ndc_id: int = None) -> Community:
+        response = await self.request("GET", "/community/info", ndc_id=-(ndc_id or self.ndc_id))
 
         return Community(**response["community"])
     
-    async def get_account_communities(self, start: int = 0, size: int = 25) -> List[Community]:
+    async def get_account_communities(self, start: int = 0, size: int = 100) -> List[Community]:
         response = await self.request("GET", f"/community/joined?v=1&start={start}&size={size}")
         return list(map(lambda o: Community(**o), response["communityList"])) 
     
     async def search_community(self, amino_id: str):
-        response = await self.request("GET", f"/search/amino-id-and-link?q={amino_id}")
+        response = await self.request("GET", f"/search/amino-id-and-link?q={amino_id}", ndc_id=GLOBAL_ID)
         return list(map(lambda o: Community(**o), [v["refObject"] for v in response["resultList"]]))
 
     async def get_chat_thread(self, thread_id: str) -> Thread:
         return Thread(**(await self.request("GET", f"/chat/thread/{thread_id}"))["thread"])
     
-    async def get_chat_threads(self, start: int = 0, size: int = 25) -> List[Thread]:
+    async def get_chat_threads(self, start: int = 0, size: int = 100) -> List[Thread]:
         response = await self.request("GET",
             f"/chat/thread?type=joined-me&start={start}&size={size}")
 
         return list(map(lambda o: Thread(**o), response["threadList"]))
     
-    async def get_chat_users(self, thread_id: str, start: int = 0, size: int = 25) -> List[UserProfile]:
+    async def get_chat_users(self, thread_id: str, start: int = 0, size: int = 100) -> List[UserProfile]:
         response = await self.request("GET",
             f"/chat/thread/{thread_id}/member?start={start}&size={size}&type=default&cv=1.2")
 
@@ -400,26 +391,26 @@ class HttpClient:
     async def get_message_info(self, thread_id: str, message_id: str):
         return Message(**(await self.request("GET", f"/chat/thread/{thread_id}/message/{message_id}"))["message"])
 
-    async def get_chat_messages(self, thread_id: str, size: int = 25, page_token: str = None) -> List[Message]:
+    async def get_chat_messages(self, thread_id: str, size: int = 100, page_token: str = None) -> List[Message]:
         if not page_token: params = f"v=2&pagingType=t&size={size}"
         else: params = f"v=2&pagingType=t&pageToken={page_token}&size={size}"
 
         response = await self.request("GET", f"/chat/thread/{thread_id}/message?{params}")
         return list(map(lambda o: Message(**o, **response.get("paging", {})),  response["messageList"]))
     
-    async def get_user_following(self, uid: str, start: int = 0, size: int = 25) -> List[UserProfile]:
+    async def get_user_following(self, uid: str, start: int = 0, size: int = 100) -> List[UserProfile]:
         response = await self.request("GET", f"/user-profile/{uid}/joined?start={start}&size={size}")
         return list(map(lambda o: UserProfile(**o), response["userProfileList"]))
 
-    async def get_user_followers(self, uid: str, start: int = 0, size: int = 25) -> List[UserProfile]:
+    async def get_user_followers(self, uid: str, start: int = 0, size: int = 100) -> List[UserProfile]:
         response = await self.request("GET", f"/user-profile/{uid}/member?start={start}&size={size}")
         return list(map(lambda o: UserProfile(**o), response["userProfileList"]))
 
-    async def get_blocked_users(self, start: int = 0, size: int = 25) -> List[UserProfile]:
+    async def get_blocked_users(self, start: int = 0, size: int = 100) -> List[UserProfile]:
         response = await self.request("GET", f"/block?start={start}&size={size}")
         return list(map(lambda o: UserProfile(**o), response["userProfileList"]))
     
-    async def get_blocker_users(self, start: int = 0, size: int = 25) -> List[str]:
+    async def get_blocker_users(self, start: int = 0, size: int = 100) -> List[str]:
         response = await self.request("GET", f"/block/full-list?start={start}&size={size}")
         return response["blockerUidList"]
 
@@ -429,15 +420,15 @@ class HttpClient:
     async def get_blog_info(self, blog_id: str) -> Blog:
         return Blog(**(await self.request("GET", f"/blog/{blog_id}"))["blog"])
     
-    async def get_blog_comments(self, blog_id: str, sorting: str = "newest", start: int = 0, size: int = 25) -> List[Comment]:
+    async def get_blog_comments(self, blog_id: str, sorting: str = "newest", start: int = 0, size: int = 100) -> List[Comment]:
         response = await self.request("GET", f"/blog/{blog_id}/comment?sort={sorting}&start={start}&size={size}")
         return list(map(lambda o: Comment(**o), response["commentList"]))
 
-    async def get_wiki_comments(self, wiki_id: str, sorting: str = "newest", start: int = 0, size: int = 25) -> List[Comment]:
+    async def get_wiki_comments(self, wiki_id: str, sorting: str = "newest", start: int = 0, size: int = 100) -> List[Comment]:
         response = await self.request("GET", f"/item/{wiki_id}/comment?sort={sorting}&start={start}&size={size}")
         return list(map(lambda o: Comment(**o), response["commentList"]))
     
-    async def get_wall_comments(self, uid: str, sorting: str, start: int = 0, size: int = 25) -> List[Comment]:
+    async def get_wall_comments(self, uid: str, sorting: str, start: int = 0, size: int = 100) -> List[Comment]:
         response = await self.request("GET", f"/user-profile/{uid}/g-comment?sort={sorting}&start={start}&size={size}")
         return list(map(lambda o: Comment(**o), response["commentList"]))
     
@@ -667,7 +658,7 @@ class HttpClient:
 
         return await self.request("POST", "/flag", json=data)
 
-    async def flag_community(self, reason: str, flag_type: int, ndc_id: str) -> int:
+    async def flag_community(self, reason: str, flag_type: int, ndc_id: int = None) -> int:
         data = jsonify(
             flagType=flag_type,
             message=reason,
@@ -680,21 +671,22 @@ class HttpClient:
     async def link_identify(self, code: str) -> Dict:
         return await self.request("GET", f"/community/link-identify?q=http://aminoapps.com/invite/{code}")
     
-    async def join_community(self, invitation_code: str = None) -> int:
+    async def join_community(self, invitation_code: str = None, ndc_id: int = None) -> int:
         data = {}
 
         if invitation_code:
             data = jsonify(invitationId=await self.link_identify(invitation_code))
 
-        return await self.request("POST", "/community/join", json=data)
+        return await self.request("POST", "/community/join", json=data, ndc_id=ndc_id or self.ndc_id)
 
-    async def request_join_community(self, message: str = None) -> int:
+    async def request_join_community(self, message: str = None, ndc_id: int = None) -> int:
         data = jsonify(message=message)
 
-        return await self.request("POST", "/community/membership-request", json=data)
+        return await self.request("POST", "/community/membership-request", 
+                                  json=data, ndc_id=ndc_id or self.ndc_id)
 
-    async def leave_community(self) -> int:
-        return await self.request("POST", "/community/leave")
+    async def leave_community(self, ndc_id: int = None) -> int:
+        return await self.request("POST", "/community/leave", ndc_id=ndc_id or self.ndc_id)
     
     async def edit_profile(self, nickname: str = None, content: str = None, icon: Union[str, bytes] = None,
             background_color: str = None, background_image: Union[str, bytes] = None, default_bubble_id: str = None, titles: list = None) -> int:
@@ -743,21 +735,21 @@ class HttpClient:
         return await self.request("POST", f"/user-profile/{self.auth.auid}", json=data)
 
     async def get_linked_communities(self, uid: str) -> List[Community]:
-        response = await self.request("GET", f"/user-profile/{uid}/linked-community")
+        response = await self.request("GET", f"/user-profile/{uid}/linked-community", ndc_id=GLOBAL_ID)
         return list(map(lambda o: Community(**o), response["linkedCommunityList"]))
 
     async def get_unlinked_communities(self, uid: str) -> List[Community]:
-        response = await self.request("GET", f"/user-profile/{uid}/linked-community")
+        response = await self.request("GET", f"/user-profile/{uid}/linked-community", ndc_id=GLOBAL_ID)
         return list(map(lambda o: Community(**o), response["unlinkedCommunityList"]))
 
-    async def reorder_linked_communities(self, communoty_ids: list) -> int:
-        data = jsonify(ndcIds=communoty_ids)
+    async def reorder_linked_communities(self, ndc_ids: list) -> int:
+        data = jsonify(ndcIds=ndc_ids)
         return await self.request("POST", f"/user-profile/{self.auth.auid}/linked-community/reorder", json=data)
 
-    async def add_linked_community(self, ndc_id: str = None) -> int:
-        return await self.request("POST", f"/user-profile/{self.auth.auid}/linked-community/{ndc_id or self.ndc_id}", json={})
+    async def add_linked_community(self, ndc_id: int = None) -> int:
+        return await self.request("POST", f"/user-profile/{self.auth.auid}/linked-community/{ndc_id or self.ndc_id}")
 
-    async def remove_linked_community(self, ndc_id: str = None) -> int:
+    async def remove_linked_community(self, ndc_id: int = None) -> int:
         return await self.request("DELETE", f"/user-profile/{self.auth.auid}/linked-community/{ndc_id or self.ndc_id}")
 
     async def set_privacy_status(self, is_anonymous: bool = False, get_notifications: bool = False) -> int:
@@ -858,7 +850,7 @@ class HttpClient:
         response = await self.request("GET", "/membership?force=true")
         return Membership(**response)
 
-    async def get_ta_announcements(self, lang: str = "en", start: int = 0, size: int = 25) -> List[Blog]:
+    async def get_ta_announcements(self, lang: str = "en", start: int = 0, size: int = 100) -> List[Blog]:
         response = await self.request("GET", f"/announcement?language={lang}&start={start}&size={size}")
         return list(map(lambda o: Blog(**o), response["blogList"]))
 
@@ -866,7 +858,7 @@ class HttpClient:
         response = await self.request("GET", "/wallet")
         return Wallet(**response["wallet"])
 
-    async def get_wallet_history(self, start: int = 0, size: int = 25) -> List[Transaction]:
+    async def get_wallet_history(self, start: int = 0, size: int = 100) -> List[Transaction]:
         response = await self.request("GET", f"/wallet/coin/history?start={start}&size={size}")
         return list(map(lambda o: Transaction(**o), response["coinHistoryList"]))
 
@@ -877,11 +869,11 @@ class HttpClient:
         response = await self.request("GET", f"/link-resolution?q={code}")
         return Link(**(ext := response["linkInfoV2"]["extensions"]), **ext.get("linkInfo", {}))
 
-    async def get_from_id(self, object_id: str, object_type: int, ndc_id: str = None) -> Link:
+    async def get_from_id(self, object_id: str, object_type: int, ndc_id: int = None) -> Link:
         data = jsonify(objectId=object_id, targetCode=1, objectType=object_type)
 
-        response = await self.request("POST", f"-x{ndc_id}/link-resolution", json=data)
-        return Link(**response["linkInfoV2"]["extensions"])
+        response = await self.request("POST", f"/link-resolution", json=data, ndc_id=-(ndc_id or self.ndc_id))
+        return Link(**(ext := response["linkInfoV2"]["extensions"]), **ext.get("linkInfo", {}))
 
     async def get_supported_languages(self):
         return (await self.request("GET", "/community-collection/supported-languages?start=0&size=100"))["supportedLanguages"]
@@ -889,27 +881,27 @@ class HttpClient:
     async def claim_new_user_coupon(self):
         return await self.request("POST", "/coupon/new-user-coupon/claim")
 
-    async def get_subscriptions(self, start: int = 0, size: int = 25):
+    async def get_subscriptions(self, start: int = 0, size: int = 100):
         return (await self.request("GET",
             f"/store/subscription?objectType={ObjectTypes.SUBSCRIPTION}&start={start}&size={size}"))["storeSubscriptionItemList"]
 
-    async def get_all_users(self, start: int = 0, size: int = 25) -> List[UserProfile]:
+    async def get_all_users(self, start: int = 0, size: int = 100) -> List[UserProfile]:
         response = await self.request("GET", f"/user-profile?type={UserTypes.RECENT}&start={start}&size={size}")
         return list(map(lambda o: UserProfile(**o), response["userProfileList"]))
     
-    async def get_community_leaders(self, start: int = 0, size: int = 25) -> List[UserProfile]:
+    async def get_community_leaders(self, start: int = 0, size: int = 100) -> List[UserProfile]:
         response = await self.request("GET", f"/user-profile?type={UserTypes.LEADERS}&start={start}&size={size}")
         return list(map(lambda o: UserProfile(**o), response["userProfileList"]))
     
-    async def get_community_curators(self, start: int = 0, size: int = 25) -> List[UserProfile]:
+    async def get_community_curators(self, start: int = 0, size: int = 100) -> List[UserProfile]:
         response = await self.request("GET", f"/user-profile?type={UserTypes.CURATORS}&start={start}&size={size}")
         return list(map(lambda o: UserProfile(**o), response["userProfileList"]))
     
-    async def get_banned_users(self, start: int = 0, size: int = 25) -> List[UserProfile]:
+    async def get_banned_users(self, start: int = 0, size: int = 100) -> List[UserProfile]:
         response = await self.request("GET", f"/user-profile?type={UserTypes.BANNED}&start={start}&size={size}")
         return list(map(lambda o: UserProfile(**o), response["userProfileList"]))
     
-    async def get_featured_users(self, start: int = 0, size: int = 25) -> List[UserProfile]:
+    async def get_featured_users(self, start: int = 0, size: int = 100) -> List[UserProfile]:
         response = await self.request("GET", f"/user-profile?type={UserTypes.FEATURED}d&start={start}&size={size}")
         return list(map(lambda o: UserProfile(**o), response["userProfileList"])) 
     
@@ -919,7 +911,7 @@ class HttpClient:
     async def invite_to_vc(self, thread_id: str, uid: str):
         return await self.request("POST", f"/chat/thread/{thread_id}/vvchat-presenter/invite", json=jsonify(uid=uid))
 
-    async def get_chat_bubbles(self, thread_id: str, start: int = 25, size: int = 25) -> List[ChatBubble]:
+    async def get_chat_bubbles(self, thread_id: str, start: int = 0, size: int = 100) -> List[ChatBubble]:
         response = await self.request("GET", f"/chat/chat-bubble?type=all-my-bubbles?threadId={thread_id}?start={start}?size={size}")
         return list(map(lambda o: UserProfile(**o), response["chatBubbleList"]))
     
@@ -927,7 +919,7 @@ class HttpClient:
         response = await self.request("GET", f"/chat/chat-bubble/{bubble_id}")
         return ChatBubble(**response["chatBubble"])
 
-    async def get_chat_bubble_templates(self, start: int = 0, size: int = 25) -> List[ChatBubble]:
+    async def get_chat_bubble_templates(self, start: int = 0, size: int = 100) -> List[ChatBubble]:
         response = await self.request("GET", f"/chat/chat-bubble/templates?start={start}&size={size}")
         return list(map(lambda o: ChatBubble(**o), response["templateList"]))
     
@@ -939,7 +931,7 @@ class HttpClient:
         response = await self.request("POST", f"/chat/chat-bubble/{bubble_id}", data=bubble, content_type=ContentTypes.OCTET_STREAM)
         return ChatBubble(**response["chatBubble"])
 
-    async def get_avatar_frames(self, start: int = 0, size: int = 25):
+    async def get_avatar_frames(self, start: int = 0, size: int = 100):
         response = await self.request("GET", f"/avatar-frame?start={start}&size={size}")
         return list(map(lambda o: AvatarFrame(**o), response["avatarFrameList"]))
 
@@ -972,18 +964,18 @@ class HttpClient:
 
         return await self.request("POST", "/avatar-frame/apply", json=data)
 
-    async def get_invite_codes(self, ndc_id: int = None, status: str = "normal", start: int = 0, size: int = 25) -> List[InviteCode]:
-        response = await self.request("GET", f"-x{ndc_id or self.ndc_id}/community/invitation?status={status}&start={start}&size={size}")
+    async def get_invite_codes(self, ndc_id: int = None, status: str = "normal", start: int = 0, size: int = 100) -> List[InviteCode]:
+        response = await self.request("GET", f"/community/invitation?status={status}&start={start}&size={size}", ndc_id=-(ndc_id or self.ndc_id))
         return list(map(lambda o: InviteCode(**o), response["communityInvitationList"]))
 
     async def generate_invite_code(self, ndc_id: int = None, duration: int = 0, force: bool = True):
         data = jsonify(duration=duration, force=force)
 
-        response = await self.request("POST", f"-x{ndc_id or self.ndc_id}/community/invitation", json=data)
+        response = await self.request("POST", f"/community/invitation", json=data, ndc_id=-(ndc_id or self.ndc_id))
         return InviteCode(**response["communityInvitation"])
 
     async def delete_invite_code(self, invite_id: str, ndc_id: int = None) -> int:
-        return await self.request("DELETE", f"-x{ndc_id or self.ndc_id}/community/invitation/{invite_id}")
+        return await self.request("DELETE", f"/community/invitation/{invite_id}", ndc_id=-(ndc_id or self.ndc_id))
     
     async def delete_blog(self, blog_id: str) -> int:
         return await self.request("DELETE", f"/blog/{blog_id}")
@@ -1208,7 +1200,7 @@ class HttpClient:
         response = await self.request("POST", f"/chat/thread/{thread_id}/avchat-reputation")
         return VcReputation(**response)
 
-    async def get_online_favorite_users(self, start: int = 0, size: int = 25) -> List[UserProfile]:
+    async def get_online_favorite_users(self, start: int = 0, size: int = 100) -> List[UserProfile]:
         response = await self.request("GET", f"/user-group/quick-access?type=online&start={start}&size={size}")
         return list(map(lambda o: UserProfile(**o), response["userProfileList"]))
 
@@ -1216,11 +1208,11 @@ class HttpClient:
         response = await self.request("GET", f"/check-in/stats/{uid}?timezone={0}")
         return list(map(lambda o: CheckIn(**o), response))
 
-    async def get_user_blogs(self, uid: str, start: int = 0, size: int = 25) -> List[Blog]:
+    async def get_user_blogs(self, uid: str, start: int = 0, size: int = 100) -> List[Blog]:
         response = await self.request("GET", f"/blog?type=user&q={uid}&start={start}&size={size}")
         return list(map(lambda o: Blog(**o), response["blogList"]))
 
-    async def get_user_wikis(self, uid: str, start: int = 0, size: int = 25) -> List[Wiki]:
+    async def get_user_wikis(self, uid: str, start: int = 0, size: int = 100) -> List[Wiki]:
         response = await self.request("GET", f"/item?type=user-all&start={start}&size={size}&cv=1.2&uid={uid}")
         return list(map(lambda o: Wiki(**o), response["itemList"]))
 
@@ -1228,62 +1220,62 @@ class HttpClient:
         response = await self.request("GET", f"/user-profile/{uid}/achievements")
         return Achievement(**response["achievements"])
 
-    async def get_influencer_fans(self, uid: str, start: int = 0, size: int = 25) -> List[UserProfile]:
+    async def get_influencer_fans(self, uid: str, start: int = 0, size: int = 100) -> List[UserProfile]:
         response = await self.request("GET", f"/influencer/{uid}/fans?start={start}&size={size}")
         return list(map(lambda o: UserProfile(**o), response))
 
-    async def search_users(self, nickname: str, start: int = 0, size: int = 25) -> List[UserProfile]:
+    async def search_users(self, nickname: str, start: int = 0, size: int = 100) -> List[UserProfile]:
         response = await self.request("GET", f"/user-profile?type=name&q={nickname}&start={start}&size={size}")
         return list(map(lambda o: UserProfile(**o), response["userProfileList"]))
 
-    async def get_saved_blogs(self, start: int = 0, size: int = 25) -> List[Bookmark]:
+    async def get_saved_blogs(self, start: int = 0, size: int = 100) -> List[Bookmark]:
         response = await self.request("GET", f"/bookmark?start={start}&size={size}")
         return list(map(lambda o: Bookmark(**o), response["bookmarkList"]))
     
-    async def get_leaderboard_info(self, type: int, start: int = 0, size: int = 25) -> List[UserProfile]:
+    async def get_leaderboard_info(self, type: int, start: int = 0, size: int = 100) -> List[UserProfile]:
         response = await self.request("GET", f"/community/leaderboard?rankingType={type}&start={start}&size={size}")
         return list(map(lambda o: UserProfile(**o), response["userProfileList"]))
 
-    async def get_blog_tipped_users(self, blog_id: str, start: int = 0, size: int = 25) -> List[TippedUserSummary]:
+    async def get_blog_tipped_users(self, blog_id: str, start: int = 0, size: int = 100) -> List[TippedUserSummary]:
         response = await self.request("GET", f"/blog/{blog_id}/tipping/tipped-users-summary?start={start}&size={size}")
         return list(map(lambda o: TippedUserSummary(**o), response))
 
-    async def get_wiki_tipped_users(self, wiki_id: str, start: int = 0, size: int = 25) -> List[TippedUserSummary]:
+    async def get_wiki_tipped_users(self, wiki_id: str, start: int = 0, size: int = 100) -> List[TippedUserSummary]:
         response = await self.request("GET", f"/item/{wiki_id}/tipping/tipped-users-summary?start={start}&size={size}")
         return list(map(lambda o: TippedUserSummary(**o), response))
     
-    async def get_chat_tipped_users(self, thread_id: str, start: int = 0, size: int = 25) -> List[TippedUserSummary]:
+    async def get_chat_tipped_users(self, thread_id: str, start: int = 0, size: int = 100) -> List[TippedUserSummary]:
         response = await self.request("GET", f"/chat/thread/{thread_id}/tipping/tipped-users-summary?start={start}&size={size}")
         return list(map(lambda o: TippedUserSummary(**o), response))
     
-    async def get_file_tipped_users(self, file_id: str, start: int = 0, size: int = 25) -> List[TippedUserSummary]:
+    async def get_file_tipped_users(self, file_id: str, start: int = 0, size: int = 100) -> List[TippedUserSummary]:
         response = await self.request("GET", f"/shared-folder/files/{file_id}/tipping/tipped-users-summary?start={start}&size={size}")
         return list(map(lambda o: TippedUserSummary(**o), response))
 
-    async def get_public_chat_threads(self, type: str = "recommended", start: int = 0, size: int = 25) -> List[Thread]:
+    async def get_public_chat_threads(self, type: str = "recommended", start: int = 0, size: int = 100) -> List[Thread]:
         response = await self.request("GET", f"/chat/thread?type=public-all&filterType={type}&start={start}&size={size}")
         return list(map(lambda o: Thread(**o), response["threadList"]))
     
-    async def get_blog_categories(self, size: int = 25) -> List[BlogCategory]:
+    async def get_blog_categories(self, size: int = 100) -> List[BlogCategory]:
         response = await self.request("GET", f"/blog-category?size={size}")
         return list(map(lambda o: BlogCategory(**o), response["blogCategoryList"]))
 
-    async def get_blogs_by_category(self, category_id: str, start: int = 0, size: int = 25) -> List[Blog]:
+    async def get_blogs_by_category(self, category_id: str, start: int = 0, size: int = 100) -> List[Blog]:
         response = await self.request("GET", f"/blog-category/{category_id}/blog-list?start={start}&size={size}")
         return list(map(lambda o: Blog(**o), response["blogList"]))
 
-    async def get_quiz_rankings(self, quiz_id: str, start: int = 0, size: int = 25)-> QuizRanking:
+    async def get_quiz_rankings(self, quiz_id: str, start: int = 0, size: int = 100)-> QuizRanking:
         response = await self.request("GET", f"/blog/{quiz_id}/quiz/result?start={start}&size={size}")
         return QuizRanking(**response)
 
-    async def get_recent_blogs(self, page_token: str = None, start: int = 0, size: int = 25) -> Blog:
+    async def get_recent_blogs(self, page_token: str = None, start: int = 0, size: int = 100) -> Blog:
         if not page_token: params = f"v=2&pagingType=t&start={start}&size={size}"
         else: params = f"v=2&pagingType=t&pageToken={page_token}&start={start}&size={size}"
         
         response = await self.request("GET", f"/feed/blog-all?{params}")
         return list(map(lambda o: Message(**o, **response.get("paging", {})),  response["blogList"]))
     
-    async def get_notifications(self, start: int = 0, size: int = 25) -> Dict:
+    async def get_notifications(self, start: int = 0, size: int = 100) -> Dict:
         return await self.request("GET", f"/notification?pagingType=t&start={start}&size={size}")["notificationList"]
     
     async def get_sticker_pack_info(self, sticker_pack_id: str) -> StickerCollection:
@@ -1294,11 +1286,11 @@ class HttpClient:
         response = await self.request("GET", f"/sticker-collection?includeStickers=false&type=my-active-collection")
         return list(map(lambda o: StickerCollection(**o), response["stickerCollection"]))
 
-    async def get_store_chat_bubbles(self, start: int = 0, size: int = 25) -> List[StoreItem]:
+    async def get_store_chat_bubbles(self, start: int = 0, size: int = 100) -> List[StoreItem]:
         response = await self.request("GET", f"/store/items?sectionGroupId=chat-bubble&start={start}&size={size}")
         return list(map(lambda o: StoreItem(**o), response["stickerCollection"]))
 
-    async def get_store_stickers(self, start: int = 0, size: int = 25) -> List[StoreItem]:
+    async def get_store_stickers(self, start: int = 0, size: int = 100) -> List[StoreItem]:
         response = await self.request("GET", f"/store/items?sectionGroupId=sticker&start={start}&size={size}")
         return list(map(lambda o: StoreItem(**o), response["stickerCollection"]))
     
@@ -1313,10 +1305,10 @@ class HttpClient:
     async def get_shared_folder_info(self) -> Dict:
         return await self.request("GET", f"/shared-folder/stats")["stats"]
 
-    async def get_shared_folder_files(self, type: str = "latest", start: int = 0, size: int = 25) -> Dict:
+    async def get_shared_folder_files(self, type: str = "latest", start: int = 0, size: int = 100) -> Dict:
         return await self.request("GET", f"/shared-folder/files?type={type}&start={start}&size={size}")["fileList"]
 
-    async def get_hidden_blogs(self, start: int = 0, size: int = 25) -> Blog:
+    async def get_hidden_blogs(self, start: int = 0, size: int = 100) -> Blog:
         response = await self.request("GET", f"/feed/blog-disabled?start={start}&size={size}")
         return list(map(lambda o: Blog(**o), response["blogList"]))
 
@@ -1326,15 +1318,15 @@ class HttpClient:
         response = await self.request("GET", f"/blog/{quiz_id}?action=review")
         return list(map(lambda o: Blog.QuizQuestion(**o), response["blog"]["quizQuestionList"]))
 
-    async def get_recent_quiz(self, start: int = 0, size: int = 25) -> Blog:
+    async def get_recent_quiz(self, start: int = 0, size: int = 100) -> Blog:
         response = await self.request("GET", f"/blog?type=quizzes-recent&start={start}&size={size}")
         return list(map(lambda o: Blog(**o), response["blogList"]))
 
-    async def get_trending_quiz(self, start: int = 0, size: int = 25) -> Blog:
+    async def get_trending_quiz(self, start: int = 0, size: int = 100) -> Blog:
         response = await self.request("GET", f"/feed/quiz-trending?start={start}&size={size}")
         return list(map(lambda o: Blog(**o), response["blogList"]))
 
-    async def get_best_quiz(self, start: int = 0, size: int = 25) -> Blog:
+    async def get_best_quiz(self, start: int = 0, size: int = 100) -> Blog:
         response = await self.request("GET", f"/feed/quiz-best-quizzes?start={start}&size={size}")
         return list(map(lambda o: Blog(**o), response["blogList"]))
 
@@ -1342,19 +1334,19 @@ class HttpClient:
         data = jsonify(uidList=uids)
         return await self.request("POST", f"/user-profile/featured/reorder", json=data)
     
-    async def user_moderation_history(self, uid: str = None, size: int = 25) -> List[AdminLog]:
+    async def user_moderation_history(self, uid: str = None, size: int = 100) -> List[AdminLog]:
         response = await self.request("GET", f"/admin/operation?pagingType=t&size={size}?objectId={uid}&objectType={ObjectTypes.USER}")
         return list(map(lambda o: AdminLog(**o), response["adminLogList"]))
 
-    async def blog_moderation_history(self, blog_id: str = None, size: int = 25) -> List[AdminLog]:
+    async def blog_moderation_history(self, blog_id: str = None, size: int = 100) -> List[AdminLog]:
         response = await self.request("GET", f"/admin/operation?pagingType=t&size={size}?objectId={blog_id}&objectType={ObjectTypes.BLOG}")
         return list(map(lambda o: AdminLog(**o), response["adminLogList"]))
 
-    async def wiki_moderation_history(self, wiki_id: str = None, size: int = 25) -> List[AdminLog]:
+    async def wiki_moderation_history(self, wiki_id: str = None, size: int = 100) -> List[AdminLog]:
         response = await self.request("GET", f"/admin/operation?pagingType=t&size={size}?objectId={wiki_id}&objectType={ObjectTypes.ITEM}")
         return list(map(lambda o: AdminLog(**o), response["adminLogList"]))
 
-    async def file_moderation_history(self, file_id: str = None, size: int = 25) -> List[AdminLog]:
+    async def file_moderation_history(self, file_id: str = None, size: int = 100) -> List[AdminLog]:
         response = await self.request("GET", f"/admin/operation?pagingType=t&size={size}?objectId={file_id}&objectType={ObjectTypes.FOLDER_FILE}")
         return list(map(lambda o: AdminLog(**o), response["adminLogList"]))
 
@@ -1612,65 +1604,65 @@ class HttpClient:
     async def reject_wiki_request(self, request_id: str) -> int:
         return await self.request("POST", f"/knowledge-base-request/{request_id}/reject")
 
-    async def get_wiki_submissions(self, start: int = 0, size: int = 25) -> Dict:
+    async def get_wiki_submissions(self, start: int = 0, size: int = 100) -> Dict:
         return (await self.request("GET", f"/knowledge-base-request?type=all&start={start}&size={size}"))["knowledgeBaseRequestList"]
     
     # Live Layer (i dont finish this)
     async def get_live_layer(self) -> Dict:
         return (await self.request("GET", f"/live-layer/homepage?v=2"))["liveLayerList"]
     
-    async def get_online_users(self, ndc_id: int = None, start: int = 0, size: int = 25) -> List[UserProfile]:
+    async def get_online_users(self, ndc_id: int = None, start: int = 0, size: int = 100) -> List[UserProfile]:
         response = await self.request("GET", f"/live-layer?topic=ndtopic:x{ndc_id or self.ndc_id}:online-members&start={start}&size={size}")
         return list(map(lambda o: UserProfile(**o), response["userProfileList"]))
     
     async def get_online_users_count(self, ndc_id: int = None) -> int:
         return (await self.request("GET", f"/live-layer?topic=ndtopic:x{ndc_id or self.ndc_id}:online-members&start=0&size=1"))["userProfileCount"]
     
-    async def get_public_chats(self, start: int = 0, size: int = 25) -> List[Thread]:
+    async def get_public_chats(self, start: int = 0, size: int = 100) -> List[Thread]:
         response = await self.request("GET", f"/live-layer/public-chats?start={start}&size={size}")
         return list(map(lambda o: UserProfile(**o), response["threadList"]))
     
-    async def get_chatting_users(self, ndc_id: int = None, start: int = 0, size: int = 25) -> List[UserProfile]:
+    async def get_chatting_users(self, ndc_id: int = None, start: int = 0, size: int = 100) -> List[UserProfile]:
         response = await self.request("GET", f"/live-layer?topic=ndtopic:x{ndc_id or self.ndc_id}:users-chatting&start={start}&size={size}")
         return list(map(lambda o: UserProfile(**o), response["userProfileList"]))
     
     async def get_chatting_users_count(self, ndc_id: int = None) -> int:
         return (await self.request("GET", f"/live-layer?topic=ndtopic:x{ndc_id or self.ndc_id}:users-chatting&start=0&size=1"))["userProfileCount"]
 
-    async def get_live_chats(self, start: int = 0, size: int = 25) -> List[Thread]:
+    async def get_live_chats(self, start: int = 0, size: int = 100) -> List[Thread]:
         response = await self.request("GET", f"/live-layer/public-live-chats?start={start}&size={size}")
         return list(map(lambda o: Thread(**o), response["threadList"]))
     
-    async def get_live_chatting_users(self, ndc_id: int = None, start: int = 0, size: int = 25) -> List[UserProfile]:
+    async def get_live_chatting_users(self, ndc_id: int = None, start: int = 0, size: int = 100) -> List[UserProfile]:
         response = await self.request("GET", f"/live-layer?topic=ndtopic:x{ndc_id or self.ndc_id}:users-live-chatting&start={start}&size={size}")
         return list(map(lambda o: UserProfile(**o), response["userProfileList"]))
     
     async def get_live_chatting_users_count(self, ndc_id: int = None) -> int:
         return (await self.request("GET", f"/live-layer?topic=ndtopic:x{ndc_id or self.ndc_id}:users-live-chatting&start=0&size=1"))["userProfileCount"]
 
-    async def get_playing_quizzes(self, start: int = 0, size: int = 25) -> List[Blog]:
+    async def get_playing_quizzes(self, start: int = 0, size: int = 100) -> List[Blog]:
         response = await self.request("GET", f"/live-layer/quizzes?start={start}&size={size}")
         return list(map(lambda o: Blog(**o), response["blogList"]))
     
-    async def get_playing_quizzes_users(self, ndc_id: int = None, start: int = 0, size: int = 25) -> List[UserProfile]:
+    async def get_playing_quizzes_users(self, ndc_id: int = None, start: int = 0, size: int = 100) -> List[UserProfile]:
         response = await self.request("GET", f"/live-layer?topic=ndtopic:x{ndc_id or self.ndc_id}:users-playing-quizzes&start={start}&size={size}")
         return list(map(lambda o: UserProfile(**o), response["userProfileList"]))
     
     async def get_playing_quizzes_users_count(self, ndc_id: int = None) -> int:
         return (await self.request("GET", f"/live-layer?topic=ndtopic:x{ndc_id or self.ndc_id}:users-playing-quizzes&start=0&size=1"))["userProfileCount"]
 
-    async def get_browsing_blogs(self, start: int = 0, size: int = 25) -> List[Blog]:
+    async def get_browsing_blogs(self, start: int = 0, size: int = 100) -> List[Blog]:
         response = await self.request("GET", f"/live-layer/blogs?start={start}&size={size}")
         return list(map(lambda o: Blog(**o), response["blogList"]))
     
-    async def get_browsing_blogs_users(self, ndc_id: int = None, start: int = 0, size: int = 25) -> List[UserProfile]:
+    async def get_browsing_blogs_users(self, ndc_id: int = None, start: int = 0, size: int = 100) -> List[UserProfile]:
         response = await self.request("GET", f"/live-layer?topic=ndtopic:x{ndc_id or self.ndc_id}:users-browsing-blogs&start={start}&size={size}")
         return list(map(lambda o: UserProfile(**o), response["userProfileList"]))
     
     async def get_browsing_blogs_users_count(self, ndc_id: int = None) -> int:
         return (await self.request("GET", f"/live-layer?topic=ndtopic:x{ndc_id or self.ndc_id}:users-browsing-blogs&start=0&size=1"))["userProfileCount"]
 
-    async def get_blog_users(self, blog_id: str, ndc_id: int = None, start: int = 0, size: int = 25):
+    async def get_blog_users(self, blog_id: str, ndc_id: int = None, start: int = 0, size: int = 100):
         response = await self.request("GET", f"/live-layer?topic=ndtopic:x{ndc_id or self.ndc_id}:users-browsing-blog-at:{blog_id}&start={start}&size={size}")
         return list(map(lambda o: UserProfile(**o), response["userProfileList"]))
     
