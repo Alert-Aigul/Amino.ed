@@ -14,7 +14,7 @@ from .helpers.models import *
 
 from .helpers.types import GLOBAL_ID, ChatPublishTypes, ContentTypes, FeaturedTypes, ObjectTypes, RepairTypes, SourceTypes, UserTypes
 from .helpers.utils import generate_signature, generate_device, get_ndc, jsonify, decode_sid
-from .helpers.exceptions import CheckException, SpecifyType, HtmlError
+from .helpers.exceptions import CheckException, IpTomporaryBan, SpecifyType, HtmlError
 
 
 class HttpClient:
@@ -37,7 +37,7 @@ class HttpClient:
         if ndc_id is not None:
             self.ndc_id: int = ndc_id
             
-        self.timeout: Optional[ClientTimeout] = ClientTimeout(timeout or 5)
+        self.timeout: Optional[ClientTimeout] = ClientTimeout(timeout or 10)
             
         self.proxy: Optional[str] = proxy
         self.proxy_auth: Optional[BasicAuth] = proxy_auth
@@ -89,8 +89,13 @@ class HttpClient:
             except ContentTypeError:
                 if not self.session.closed:
                     await self.session.close()
-
-                raise HtmlError(await response.text())
+                    
+                response_text = await response.text()
+                
+                if "403" in response_text:
+                    raise IpTomporaryBan("403 Forbidden")
+                else:
+                    raise HtmlError(response_json)
 
             if response.status != 200:
                 if not self.session.closed:
