@@ -45,8 +45,6 @@ class HttpClient:
         user_agent = "Amino.ed Python/{0[0]}.{0[1]} Bot"
         self.user_agent: str = user_agent.format(sys.version_info)
         
-        self.join_community
-
     async def request(self, method: str, path: str, **kwargs):
         ndc_id = kwargs.pop("ndc_id", self.ndc_id)
         url = f"{self.API}{get_ndc(ndc_id)}{path}"
@@ -76,10 +74,10 @@ class HttpClient:
         if kwargs.get("content_type") is not None:
             headers["Content-Type"] = kwargs.pop("content_type")
 
-        if self.proxy is not None:
+        if kwargs.get("proxy") is None:
             kwargs["proxy"] = self.proxy
 
-        if self.proxy_auth is not None:
+        if kwargs.get("proxy_auth") is None:
             kwargs["proxy_auth"] = self.proxy_auth
         
         kwargs["headers"] = headers
@@ -483,7 +481,7 @@ class HttpClient:
             mediaUhqEnabled=True,
             clientRefId=int(time() / 10 % 1000000000),
             
-            mediaUploadValueContentType=ContentTypes.IMAGE,
+            mediaUploadValueContentType=ContentTypes.JPG,
             mediaUploadValue=b64encode(file).decode()
         )        
 
@@ -573,28 +571,28 @@ class HttpClient:
             f"/chat/thread/{thread_id}/member/{self.auth.auid}/background", json=data)
 
     async def pin_chat(self, thread_id: str) -> int:
-        return self.request("POST", f"/chat/thread/{thread_id}/pin", json={})
+        return await self.request("POST", f"/chat/thread/{thread_id}/pin", json={})
     
     async def unpin_chat(self, thread_id: str) -> int:
-        return self.request("POST", f"/chat/thread/{thread_id}/unpin", json={})
+        return await self.request("POST", f"/chat/thread/{thread_id}/unpin", json={})
     
     async def chat_view_only_enable(self, thread_id: str) -> int:
-        return self.request("POST", f"/chat/thread/{thread_id}/view-only/enable", json={})
+        return await self.request("POST", f"/chat/thread/{thread_id}/view-only/enable", json={})
 
     async def chat_view_only_disble(self, thread_id: str) -> int:
-        return self.request("POST", f"/chat/thread/{thread_id}/view-only/disable", json={})
+        return await self.request("POST", f"/chat/thread/{thread_id}/view-only/disable", json={})
 
     async def chat_invite_members_enable(self, thread_id: str) -> int:
-        return self.request("POST", f"/chat/thread/{thread_id}/members-can-invite/enable", json={})
+        return await self.request("POST", f"/chat/thread/{thread_id}/members-can-invite/enable", json={})
 
     async def chat_invite_members_disable(self, thread_id: str) -> int:
-        return self.request("POST", f"/chat/thread/{thread_id}/members-can-invite/disable", json={})
+        return await self.request("POST", f"/chat/thread/{thread_id}/members-can-invite/disable", json={})
 
     async def chat_tipping_enable(self, thread_id: str) -> int:
-        return self.request("POST", f"/chat/thread/{thread_id}/tipping-perm-status/enable", json={})
+        return await self.request("POST", f"/chat/thread/{thread_id}/tipping-perm-status/enable", json={})
 
     async def chat_tipping_disable(self, thread_id: str) -> int:
-        return self.request("POST", f"/chat/thread/{thread_id}/tipping-perm-status/disable", json={})
+        return await self.request("POST", f"/chat/thread/{thread_id}/tipping-perm-status/disable", json={})
 
     async def send_coins_to_blog(self, coins: int, blog_id: str, transaction_id: str = None) -> int:
         data = jsonify(coins=coins, tippingContext=jsonify(transactionId=transaction_id or str(uuid4())))

@@ -1,10 +1,8 @@
 import io
-from locale import strcoll
 import sys
-from types import CoroutineType
 
 from ujson import loads
-from typing import Callable, Coroutine, Optional, Tuple
+from typing import Optional, Tuple
 
 from asyncio import AbstractEventLoop, sleep
 from zipfile import ZIP_DEFLATED, ZipFile
@@ -38,6 +36,7 @@ class Client(HttpClient):
         self.callbacks_to_execute: list = []
         
         self.prefix = prefix or ""
+        self.community_info: Optional[Community] = None
         
     @property
     def loop(self):
@@ -167,15 +166,21 @@ class Client(HttpClient):
             self.ndc_id = ndc_id
         
         if aminoId:
-            if "https://aminoapps.com/c/" not in aminoId:
-                aminoId = f"https://aminoapps.com/c/{aminoId}"
-                
-            self.ndc_id = (await self.get_link_info(aminoId)).community.ndcId
+            if "http" not in aminoId and "://" not in aminoId:
+                amino_link = f"https://aminoapps.com/c/{amino_link}"
+            
+            link_info = await self.get_link_info(aminoId)
+            
+            self.ndc_id = link_info.community.ndcId
+            self.community_info = link_info.community
 
         return self
     
-    async def login(self, email: str, password: str) -> Auth:
-        return await self.login_email(email, f"0 {password}")
+    async def login(self, email: str, password: str, device_id: str = None) -> Auth:
+        return await self.login_email(email, f"0 {password}", device_id)
+    
+    async def login_phone(self, phone: str, password: str, device_id: str = None) -> Auth:
+        return await self.login_phone(phone, f"0 {password}", device_id)
     
     def start(self, email: str = None, password: str = None, sid: str = None) -> Auth:
         if not sid:
@@ -209,21 +214,6 @@ class Client(HttpClient):
                 self.auth.account = auth.account
                 
                 return self.auth
-            
-            # if not secret_expired(auth.secret):
-            #     auth = await self.login_email(email, auth.secret)
-                
-            # else:
-            #     auth = await self.login(email, password)
-            
-            auth = await self.login(email, password)
-                
-            await set_cache(email, jsonify(
-                auth=auth.dict(),
-                device=self.device_id
-            ))
-            
-            return auth
         
         auth = await self.login(email, password)
                 
