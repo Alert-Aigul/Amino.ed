@@ -7,7 +7,7 @@ from locale import localeconv
 from base64 import b64encode
 from typing import Dict, List, Optional, Union
 
-from aiohttp import BasicAuth, ClientSession, ClientTimeout, ContentTypeError
+from aiohttp import BaseConnector, BasicAuth, ClientSession, ClientTimeout, ContentTypeError
 from json_minify import json_minify
 
 from .helpers.models import *
@@ -26,9 +26,11 @@ class HttpClient:
         session: Optional[ClientSession] = None,
         proxy: Optional[str] = None,
         proxy_auth: Optional[BasicAuth] = None,
-        timeout: Optional[int] = None
+        timeout: Optional[int] = None,
+        connector: Optional[BaseConnector] = None
     ) -> None:
-        self._session: Optional[ClientSession] = session
+        self.connector: Optional[BaseConnector] = connector
+        self.session: Optional[ClientSession] = session
 
         self.ndc_id: int = GLOBAL_ID
         self._auth: Auth = Auth(**{})
@@ -44,6 +46,8 @@ class HttpClient:
 
         user_agent = "Amino.ed Python/{0[0]}.{0[1]} Bot"
         self.user_agent: str = user_agent.format(sys.version_info)
+        
+        self.get_link_info
         
     async def request(self, method: str, path: str, **kwargs):
         ndc_id = kwargs.pop("ndc_id", self.ndc_id)
@@ -108,7 +112,8 @@ class HttpClient:
     @property
     def session(self) -> ClientSession:
         if not self._session or self._session.closed:
-            self._session = ClientSession(timeout=self.timeout)
+            self._session = ClientSession(
+                timeout=self.timeout, connector=self.connector)
         return self._session
     
     @session.setter
@@ -547,7 +552,7 @@ class HttpClient:
             publishToGlobal=0 if publish_to_global else 1
         )
 
-        return await self.request(f"/chat/thread/{thread_id}", json=data)
+        return await self.request("POST", f"/chat/thread/{thread_id}", json=data)
 
     async def set_chat_hosts(self, co_hosts: list, thread_id: str) -> int:
         return await self.request("POST", f"/chat/thread/{thread_id}/co-host", json=jsonify(uidList=co_hosts))
@@ -869,7 +874,7 @@ class HttpClient:
         return (await self.request("GET", f"/auid?deviceId={device_id}"))["auid"]
 
     async def get_link_info(self, code: str) -> Link:
-        response = await self.request("GET", f"/link-resolution?q={code}")
+        response = await self.request("GET", f"/link-resolution?q={code}", ndc_id=GLOBAL_ID)
         return Link(**(ext := response["linkInfoV2"]["extensions"]), **ext.get("linkInfo", {}))
 
     async def get_from_id(self, object_id: str, object_type: int, ndc_id: int = None) -> Link:

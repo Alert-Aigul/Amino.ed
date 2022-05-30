@@ -4,6 +4,7 @@ import sys
 from ujson import loads
 from typing import Optional, Tuple
 
+from aiohttp import BaseConnector
 from asyncio import AbstractEventLoop, sleep
 from zipfile import ZIP_DEFLATED, ZipFile
 from eventemitter import EventEmitter
@@ -11,6 +12,7 @@ from eventemitter import EventEmitter
 from .http import HttpClient
 from .helpers.utils import *
 from .helpers.exceptions import NoCommunity
+from .helpers.types import GLOBAL_ID
 from .helpers.models import *
 from .websocket import AminoWebSocket
 
@@ -24,9 +26,10 @@ class Client(HttpClient):
         proxy: Optional[str] = None,
         proxy_auth: Optional[str] = None,
         timeout: Optional[int] = None,
-        prefix: Optional[str] = None
+        prefix: Optional[str] = None,
+        connector: Optional[BaseConnector] = None
     ) -> None:
-        super().__init__(ndc_id, None, proxy, proxy_auth, timeout)
+        super().__init__(ndc_id, None, proxy, proxy_auth, timeout, connector)
         self._loop: Optional[AbstractEventLoop] = loop
         
         self.device_id: str = device_id or self.device_id
@@ -156,23 +159,30 @@ class Client(HttpClient):
     
     async def set_community(
         self, 
-        ndc_id: str = None, 
-        aminoId: str = None
-    ) -> 'Client':
-        if not aminoId and not ndc_id:
+        community: Union[str, int, Community] = GLOBAL_ID
+    ) -> 'Client':        
+        if isinstance(community, str):
+            if community.isdigit():
+                self.ndc_id = int(community)
+                
+            else:
+                if "http" not in community and "://" not in community:
+                    community = f"https://aminoapps.com/c/{community}"
+            
+                link_info = await self.get_link_info(community)
+                
+                self.ndc_id = link_info.community.ndcId
+                self.community_info = link_info.community
+                
+        elif isinstance(community, Community):
+            self.community_info = community
+            self.ndc_id = community.ndcId
+        
+        elif isinstance(community, int):
+            self.ndc_id = community       
+            
+        else:
             raise NoCommunity()
-        
-        if ndc_id:
-            self.ndc_id = ndc_id
-        
-        if aminoId:
-            if "http" not in aminoId and "://" not in aminoId:
-                amino_link = f"https://aminoapps.com/c/{amino_link}"
-            
-            link_info = await self.get_link_info(aminoId)
-            
-            self.ndc_id = link_info.community.ndcId
-            self.community_info = link_info.community
 
         return self
     
