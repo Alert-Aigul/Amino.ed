@@ -994,3 +994,11 @@ class SID(BaseModel):
     ip:         Optional[str] = Field(alias="4")
     makeTime:   Optional[int] = Field(alias="5")
     clientType: Optional[int] = Field(alias="6")
+
+class CommunityStatistic(BaseModel):
+    dailyActiveMembers: Optional[Any]
+    monthlyActiveMembers: Optional[Any]
+    totalTimeSpent: Optional[Any]
+    totalPostsCreated: Optional[Any]
+    newMembersToday: Optional[Any]
+    totalMembers: Optional[Any]

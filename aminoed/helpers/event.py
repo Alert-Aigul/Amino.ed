@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 from ..client import Client
 from .models import Auth, BaseEvent, Message
@@ -27,10 +27,17 @@ class Event(BaseEvent):
         self,
         message: str = None,
         mentions: list = None,
-        type: int = 0
+        type: int = 0,
+        embed_id: str = None,
+        embed_type: int = None,
+        embed_link: str = None, 
+        embed_title: str = None, 
+        embed_content: str = None, 
+        embed_image: Union[bytes, str] = None
     ) -> Message:
         return await self.client.send_message(
-            self.threadId, message, type, self.messageId, mentions)
+            self.threadId, message, type, self.messageId, mentions,
+            embed_id, embed_type, embed_link, embed_title, embed_content, embed_image)
 
     async def send_image(self, image: bytes):
         return await self.client.send_image(self.threadId, image)

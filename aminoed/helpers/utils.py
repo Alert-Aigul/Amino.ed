@@ -15,8 +15,7 @@ PREFIX = bytes.fromhex("42")
 SIG_KEY = bytes.fromhex("F8E7A61AC3F725941E3AC7CAE2D688BE97F30B93")
 DEVICE_KEY = bytes.fromhex("02B258C63559D8804321C5D5065AF320358D366F")
 
-CACHE_WRITER_LOCK = asyncio.Lock()
-CACHE_READER_LOCK = asyncio.Lock()
+CACHE_LOCK = asyncio.Lock()
 
 
 def generate_device(data: bytes = None) -> str:
@@ -36,7 +35,6 @@ def generate_signature(data: Union[str, bytes]) -> str:
 
 def get_timers(size: int) -> List[Dict[str, int]]:
     return tuple(map(lambda _: {"start": int(time()), "end": int(time() + 300)}, range(size)))
-
 
 
 def generate_sid(key: str, userId: str, ip: str, timestamp: int = int(time()), clientType: int = 100) -> str:
@@ -98,31 +96,30 @@ def is_json(myjson) -> bool:
 
 
 async def set_cache(key: str, value: Any) -> Any:
-    async with CACHE_READER_LOCK:
+    async with CACHE_LOCK:
         try:
             async with async_open(".ed.cache") as file:
                 cache = loads(await file.read())
         except FileNotFoundError:
             cache = {}
     
-    cache.update({
-        key: value
-    })
-    
-    async with CACHE_WRITER_LOCK:
+        cache.update({
+            key: value
+        })
+        
         async with async_open(".ed.cache", "w") as file:
             await file.write(dumps(cache))
 
 
 async def get_cache(key: str, default: Any = None) -> Any:
-    async with CACHE_READER_LOCK:
+    async with CACHE_LOCK:
         try:
             async with async_open(".ed.cache") as file:
                 cache: dict = loads(await file.read())
         except FileNotFoundError:
             return default
     
-    return cache.get(key, default)
+        return cache.get(key, default)
 
 
 def properties(objects: list, name: str):

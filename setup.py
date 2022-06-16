@@ -40,7 +40,7 @@ setup(
     ],
     install_requires=[
         "setuptools",
-        "six",
+        "requests"
         "aiohttp",
         "ujson",
         "pydantic",

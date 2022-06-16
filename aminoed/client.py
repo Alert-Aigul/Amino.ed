@@ -1,7 +1,8 @@
 import io
 import sys
+import requests
 
-from ujson import loads
+from ujson import loads, JSONDecodeError
 from typing import Optional, Tuple
 
 from aiohttp import BaseConnector
@@ -9,6 +10,7 @@ from asyncio import AbstractEventLoop, sleep
 from zipfile import ZIP_DEFLATED, ZipFile
 from eventemitter import EventEmitter
 
+from . import __version__, __title__
 from .http import HttpClient
 from .helpers.utils import *
 from .helpers.exceptions import NoCommunity
@@ -27,7 +29,8 @@ class Client(HttpClient):
         proxy_auth: Optional[str] = None,
         timeout: Optional[int] = None,
         prefix: Optional[str] = None,
-        connector: Optional[BaseConnector] = None
+        connector: Optional[BaseConnector] = None,
+        check_updates: bool = True
     ) -> None:
         super().__init__(ndc_id, None, proxy, proxy_auth, timeout, connector)
         self._loop: Optional[AbstractEventLoop] = loop
@@ -40,6 +43,9 @@ class Client(HttpClient):
         
         self.prefix = prefix or ""
         self.community_info: Optional[Community] = None
+        
+        if check_updates:
+            self.check_updates()
         
     @property
     def loop(self):
@@ -71,6 +77,13 @@ class Client(HttpClient):
     async def _close_session(self):
         if not self.session.closed:
             await self.session.close()
+            
+    def check_updates(self):
+        response = requests.get(f"https://pypi.python.org/pypi/{__title__}/json")
+        __newest__ = response.json().get("info", {}).get("version", __version__)
+        
+        if __version__ != __newest__:
+            print(f"New version available: {__newest__} (Using {__version__})")
     
     def with_proxy(
         self, func,
@@ -214,23 +227,26 @@ class Client(HttpClient):
         email: str, 
         password: str = None
     ) -> Auth:
-        if (account := await get_cache(email, False)):
-            auth = Auth(**account["auth"])
+        try:
+            if (auth_json := await get_cache(email, False)):
+                auth = Auth(**auth_json)
+                
+                auth_json["sid"]
+                # Calling KeyError if sid not defined
+                            
+                if not sid_expired(auth.sid):
+                    await self.login_sid(auth.sid)
+                    
+                    self.auth.user = auth.user
+                    self.auth.account = auth.account
+                    
+                    return self.auth
+        except KeyError or JSONDecodeError or TypeError:
+            print("WARN: Your cache is corrupted and has been deleted to be recreated.")
+            os.remove(".ed.cache")
             
-            if not sid_expired(auth.sid):
-                await self.login_sid(auth.sid)
-                
-                self.auth.user = auth.user
-                self.auth.account = auth.account
-                
-                return self.auth
-        
         auth = await self.login(email, password)
-                
-        await set_cache(email, jsonify(
-            auth=auth.dict(),
-            device=self.device_id
-        ))
+        await set_cache(email, auth.dict())
         
         return auth
     

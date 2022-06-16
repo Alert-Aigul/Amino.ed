@@ -260,8 +260,34 @@ class EventTypes:
     TIMESTAMP: int =                           "65281:0"
     WELCOME_MESSAGE: int =                     "65282:0"
     INVITE_MESSAGE: int =                      "65283:0"
-    
 
+class PathTypes:
+    WELCOME_MESSAGE = "general.welcomeMessage"
+    
+    CHAT =             "module.chat.enabled"
+    LIVE_CHAT =        "module.chat.avChat.videoEnabled"
+    SCREENING_ROOM =   "module.chat.avChat.screeningRoomEnabled"
+    PUBLIC_CHAT =      "module.chat.publicChat.enabled"
+    POST =             "module.post.enabled"
+    RANKING =          "module.ranking.enabled"
+    LEADERBOARD =      "module.ranking.leaderboardEnabled"
+    FEATURED =         "module.featured.enabled"
+    FEATURED_POST =    "module.featured.postEnabled"
+    FEATURED_MEMBER =  "module.featured.memberEnabled"
+    FEATURED_CHAT =    "module.featured.publicChatRoomEnabled"
+    SHARED_FOLDER =    "module.sharedFolder.enabled"
+    INFLUENCER =       "module.influencer.enabled"
+    CATALOG =          "module.catalog.enabled"
+    EXTERNAL_CONTENT = "module.externalContent.enabled"
+    TOPIC_CATEGORIES = "module.topicCategories.enabled"
+    
+    LEFT_SIDE_PANEL_ICON_COLOR = "appearance.leftSidePanel.style.iconColor"    
+
+class PromoteRankTypes:
+    AGENT = "transfer-agent"
+    LEADER = "leader"
+    CURATOR = "curator"
+    
 def allTypes(self: classmethod):
     normal_values: list = []
     values: tuple = self.__dict__.items()

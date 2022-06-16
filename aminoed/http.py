@@ -5,14 +5,14 @@ from uuid import uuid4
 from time import time
 from locale import localeconv
 from base64 import b64encode
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Literal, Optional, Union
 
 from aiohttp import BaseConnector, BasicAuth, ClientSession, ClientTimeout, ContentTypeError
 from json_minify import json_minify
 
 from .helpers.models import *
 
-from .helpers.types import GLOBAL_ID, ChatPublishTypes, ContentTypes, FeaturedTypes, ObjectTypes, RepairTypes, SourceTypes, UserTypes
+from .helpers.types import GLOBAL_ID, ChatPublishTypes, ContentTypes, FeaturedTypes, ObjectTypes, PathTypes, RepairTypes, SourceTypes, UserTypes
 from .helpers.utils import generate_signature, generate_device, get_ndc, jsonify, decode_sid
 from .helpers.exceptions import CheckException, IpTomporaryBan, SpecifyType, HtmlError
 
@@ -30,7 +30,7 @@ class HttpClient:
         connector: Optional[BaseConnector] = None
     ) -> None:
         self.connector: Optional[BaseConnector] = connector
-        self.session: Optional[ClientSession] = session
+        self._session: Optional[ClientSession] = session
 
         self.ndc_id: int = GLOBAL_ID
         self._auth: Auth = Auth(**{})
@@ -47,7 +47,7 @@ class HttpClient:
         user_agent = "Amino.ed Python/{0[0]}.{0[1]} Bot"
         self.user_agent: str = user_agent.format(sys.version_info)
         
-        self.get_link_info
+        self.upload_media
         
     async def request(self, method: str, path: str, **kwargs):
         ndc_id = kwargs.pop("ndc_id", self.ndc_id)
@@ -91,10 +91,10 @@ class HttpClient:
             try:
                 response_json: Dict = await response.json(loads=json.loads)
             except ContentTypeError:
+                response_text = await response.text()
+                
                 if not self.session.closed:
                     await self.session.close()
-                    
-                response_text = await response.text()
                 
                 if "403" in response_text:
                     raise IpTomporaryBan("403 Forbidden")
@@ -322,6 +322,10 @@ class HttpClient:
 
         return response["mediaValue"]
     
+    async def upload_themepack_raw(self, file: bytes):
+        response = await self.request("POST", f"/media/upload/target/community-theme-pack", data=file)
+        return response
+    
     async def upload_bubble_preview(self, file: bytes) -> str:
         response = await self.request("POST",
             "/media/upload/target/chat-bubble-thumbnail",
@@ -333,7 +337,8 @@ class HttpClient:
         return await self.request("GET", f"/eventlog/profile?language={language}", ndc_id=GLOBAL_ID)
     
     async def get_community_info(self, ndc_id: int = None) -> Community:
-        response = await self.request("GET", "/community/info", ndc_id=-(ndc_id or self.ndc_id))
+        response = await self.request("GET", "/community/info?withInfluencerList=1" \
+            "&withTopicList=true&influencerListOrderStrategy=fansCount", ndc_id=-(ndc_id or self.ndc_id))
 
         return Community(**response["community"])
     
@@ -423,7 +428,7 @@ class HttpClient:
         return response["blockerUidList"]
 
     async def get_wiki_info(self, wiki_id: str) -> Wiki:
-        return Wiki(**(await self.request("GET", f"/item/{wiki_id}"))["inMyFavorites"])
+        return Wiki(**(await self.request("GET", f"/item/{wiki_id}"))["item"])
     
     async def get_blog_info(self, blog_id: str) -> Blog:
         return Blog(**(await self.request("GET", f"/blog/{blog_id}"))["blog"])
@@ -1027,12 +1032,12 @@ class HttpClient:
 
         mediaList = [[100, await self.upload_media(image), None] for image in imageList]
 
-        data = {
-            "label": title,
-            "content": content,
-            "mediaList": mediaList,
-            "eventSource": SourceTypes.GLOBAL_COMPOSE
-        }
+        data = jsonify(
+            label=title,
+            content=content,
+            mediaList=mediaList,
+            eventSource=SourceTypes.GLOBAL_COMPOSE
+        )
 
         if icon:
             data["icon"] = icon
@@ -1319,8 +1324,6 @@ class HttpClient:
     async def get_hidden_blogs(self, start: int = 0, size: int = 100) -> Blog:
         response = await self.request("GET", f"/feed/blog-disabled?start={start}&size={size}")
         return list(map(lambda o: Blog(**o), response["blogList"]))
-
-    
 
     async def review_quiz_questions(self, quiz_id: str) -> List[Blog.QuizQuestion]:
         response = await self.request("GET", f"/blog/{quiz_id}?action=review")
@@ -1680,6 +1683,163 @@ class HttpClient:
     async def deactivate_bubble(self, bubble_id: str) -> int:
         return await self.request("POST", f"/chat/chat-bubble/{bubble_id}/deactivate")
 
-    async def send_active_object(self, timers: List[Dict], timezone: int = 0, flags: int = 0):
-        data = jsonify(userActiveTimeChunkList=timers, optInAdsFlags=flags, timezone=timezone)
+    async def send_active_object(self, timers: List[Dict], timezone: int = 0, flags: int = 2147483647):
+        data = jsonify(userActiveTimeChunkList=timers, optInAdsFlags=flags, timezone=timezone, timestamp=int(time() * 1000))
         return await self.request("POST", "/community/stats/user-active-time", data=json_minify(json.dumps(data)))
+    
+    async def create_community(self, name: str, tagline: str, icon: Union[str, bytes], themeColor: str, joinType: int = 0, primaryLanguage: str = "en"):
+        data = jsonify(
+            icon=jsonify(
+                height=512.0,
+                imageMatrix=[1.6875, 0.0, 108.0, 0.0, 1.6875, 497.0, 0.0, 0.0, 1.0],
+                path=await self.upload_media(icon) if isinstance(bytes) else icon,
+                width=512.0,
+                x=0.0,
+                y=0.0
+            ),
+            joinType=joinType,
+            name=name,
+            primaryLanguage=primaryLanguage,
+            tagline=tagline,
+            templateId=9,
+            themeColor=themeColor
+        )
+
+        response = await self.request("POST", f"/community", json=data, ndc_id=GLOBAL_ID)
+        return response
+
+    async def delete_community(
+        self, 
+        email: str, 
+        password: str, 
+        code: str, 
+        ndc_id: int = None
+    ):
+        data = jsonify(
+            secret=f"0 {password}",
+            validationContext=jsonify(
+                data=jsonify(
+                    code=code
+                ),
+                type=1,
+                identity=email
+            ),
+            deviceID=self.device_id
+        )
+
+        response = await self.request("POST", f"/community/delete-request", json=data,  ndc_id=-(ndc_id or self.ndc_id))
+        return response
+
+    async def get_managed_communities(self, start: int = 0, size: int = 25):
+        response = await self.request("GET", f"/community/managed?start={start}&size={size}", ndc_id=GLOBAL_ID)
+        return list(map(lambda o: Community(**o), response["communityList"]))
+    
+    # TODO : Finish it
+    async def get_categories(self, start: int = 0, size: int = 25):
+        response = await self.request("GET", f"/blog-category?start={start}&size={size}")
+        return response
+
+    async def change_sidepanel_color(self, color: str):
+        data = jsonify(
+            path=PathTypes.LEFT_SIDE_PANEL_ICON_COLOR,
+            value=color
+        )
+
+        response = await self.request("POST", f"/community/configuration", json=data)
+        return response
+
+    async def upload_themepack_raw(self, file: bytes):
+        response = await self.request("POST", f"/media/upload/target/community-theme-pack", data=file)
+        return response
+
+    async def promote(self, userId: str, rank: str):
+        data = jsonify()
+
+        response = await self.request("POST", f"/user-profile/{userId}/{rank}", json=data)
+        return response
+
+    async def get_join_requests(self, start: int = 0, size: int = 25):
+        response = await self.request("GET", f"/community/membership-request?status=pending&start={start}&size={size}")
+        return list(map(lambda o: UserProfile(**o), response["communityMembershipRequestList"])) 
+    
+    async def get_join_requests(self, start: int = 0, size: int = 25):
+        response = await self.request("GET", f"/community/membership-request?status=pending&start={start}&size={size}")
+        return response["communityMembershipRequestCount"]
+
+    async def accept_join_request(self, userId: str):
+        response = await self.request("POST", f"/community/membership-request/{userId}/accept", json={})
+        return response
+
+    async def reject_join_request(self, userId: str):
+        response = await self.request("POST", f"/community/membership-request/{userId}/reject", json={})
+        return response
+
+    async def get_community_stats(self):
+        response = await self.request("GET", f"/community/stats")
+        return CommunityStatistic(**response['communityStats'])
+
+    async def get_community_user_stats(self, type: str, start: int = 0, size: int = 25):
+        response = await self.request("GET", f"/community/stats/moderation?type={type}&start={start}&size={size}")
+        return list(map(lambda o: UserProfile(**o), response["userProfileList"]))
+
+    async def change_welcome_message(self, message: str, isEnabled: bool = True):
+        data = jsonify(
+            path=PathTypes.WELCOME_MESSAGE,
+            value=jsonify(
+                enabled=isEnabled,
+                text=message
+            )
+        )
+
+        response = await self.request("POST", f"/community/configuration", json=data)
+        return response
+
+    async def change_guidelines(self, message: str):
+        data = jsonify(content=message)
+
+        response = await self.request("POST", f"/community/guideline", json=data)
+        return response
+
+    async def edit_community(
+        self, 
+        name: str = None, 
+        content: str = None, 
+        aminoId: str = None, 
+        primaryLanguage: str = None, 
+        themePackUrl: str = None
+    ):
+        data = jsonify(
+            name=name,
+            content=content,
+            endpoint=aminoId,
+            primaryLanguage=primaryLanguage,
+            themePackUrl=themePackUrl
+        )
+
+        response = await self.request("POST", f"/community/settings", json=data)
+        return response
+
+    async def change_module(self, module: str, isEnabled: bool):
+        data = jsonify(path=module, value=isEnabled)
+
+        response = await self.request("POST", f"/community/configuration", json=data)
+        return response
+
+    async def add_influencer(self, userId: str, monthlyFee: int):
+        data = jsonify(monthlyFee=monthlyFee)
+
+        response = await self.request("POST", f"/influencer/{userId}", json=data)
+        return response
+
+    async def remove_influencer(self, userId: str):
+        response = self.request("DELETE", f"/influencer/{userId}")
+        return response
+    
+    # TODO : Finish it
+    async def get_notice_list(self, start: int = 0, size: int = 25, type: str = "management"):
+        response = await self.request("GET", f"/notice?type={type}&status=1&start={start}&size={size}")
+        return response["noticeList"]
+
+    async def delete_pending_role(self, noticeId: str):
+        response = self.request("DELETE", f"/notice/{noticeId}")
+        return response
