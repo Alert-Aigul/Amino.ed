@@ -2,10 +2,12 @@ __title__ = 'Amino.ed'
 __author__ = 'Alert Aigul'
 __license__ = 'MIT'
 __copyright__ = 'Copyright 2020-2022 Alert'
-__version__ = '2.8.0.1'
+__version__ = '2.8.1'
 
 from asyncio import sleep, create_task, gather
 from asyncio.events import AbstractEventLoop
+
+from aiohttp import BaseConnector
 
 from .client import Client
 from .websocket import AminoWebSocket
@@ -18,22 +20,33 @@ from .helpers.event import *
 
 
 def run_with_client(
-    ndc_id: str = None, 
-    device_id: str = None,
     check_updates: bool = True,
-    event_loop: AbstractEventLoop = None
-):
+    ndc_id: Optional[str] = None,
+    device_id: Optional[str] = None,
+    loop: Optional[AbstractEventLoop] = None,
+    proxy: Optional[str] = None,
+    proxy_auth: Optional[str] = None,
+    timeout: Optional[int] = None,
+    connector: Optional[BaseConnector] = None,
+) -> None:
     async def start(loop, callback):
         async with Client(
             ndc_id, 
             device_id, 
             loop, 
-            check_updates=check_updates
+            proxy, 
+            proxy_auth,
+            timeout, 
+            None,
+            connector, 
+            check_updates
         ) as client:
             await callback(client)
 
     def _start(callback):
-        loop = event_loop or get_event_loop()
+        nonlocal loop
+        
+        loop = loop or get_event_loop()
         loop.run_until_complete(start(loop, callback))
     return _start
 

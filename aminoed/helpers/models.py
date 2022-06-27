@@ -611,7 +611,7 @@ class Message(BaseModel):
     prevPageToken:     Optional[str]
 
     @property
-    def replies(self) -> 'Message':
+    def reply(self) -> 'Message':
         Message: 'Message' = getattr(sys.modules[__name__], 'Message')
 
         return Message(**(self.extensions.replyMessage or {
@@ -736,6 +736,7 @@ class Link(BaseModel):
     ndcId:      Optional[int]
     fullPath:   Optional[str]
     shortCode:  Optional[str]
+    shortLink:  Optional[str]
     objectType: Optional[int]
     community:  Optional[Community]
 

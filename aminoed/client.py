@@ -1,8 +1,10 @@
 import io
 import sys
+import ujson
+import aiofile
 import requests
 
-from ujson import loads, JSONDecodeError
+from copy import copy
 from typing import Optional, Tuple
 
 from aiohttp import BaseConnector
@@ -30,7 +32,8 @@ class Client(HttpClient):
         timeout: Optional[int] = None,
         prefix: Optional[str] = None,
         connector: Optional[BaseConnector] = None,
-        check_updates: bool = True
+        check_updates: bool = True,
+        auth: Optional[Auth] = None
     ) -> None:
         super().__init__(ndc_id, None, proxy, proxy_auth, timeout, connector)
         self._loop: Optional[AbstractEventLoop] = loop
@@ -45,7 +48,10 @@ class Client(HttpClient):
         self.community_info: Optional[Community] = None
         
         if check_updates:
-            self.check_updates()
+            self.check_lib_updates()
+            
+        if auth:
+            self.set_auth(auth)
         
     @property
     def loop(self):
@@ -78,7 +84,7 @@ class Client(HttpClient):
         if not self.session.closed:
             await self.session.close()
             
-    def check_updates(self):
+    def check_lib_updates(self):
         response = requests.get(f"https://pypi.python.org/pypi/{__title__}/json")
         __newest__ = response.json().get("info", {}).get("version", __version__)
         
@@ -105,8 +111,8 @@ class Client(HttpClient):
             device_id = self.device_id
             timeout = timeout or self.timeout.total
                         
-            ClientClass: "Client" = getattr(sys.modules[__name__], "Client")
-            client: "Client" = ClientClass(ndc_id, device_id, None, proxy, proxy_auth, timeout)
+            ClientClass: 'Client' = getattr(sys.modules[__name__], 'Client')
+            client: 'Client' = ClientClass(ndc_id, device_id, None, proxy, proxy_auth, timeout)
    
             client.auth = self.auth
         
@@ -160,7 +166,7 @@ class Client(HttpClient):
             if not commands:
                 commands = [callback.__name__]
                 
-            commands = [f'{prefix}{command}' for command in commands]
+            commands = [f"{prefix}{command}" for command in commands]
             
             for command in commands:
                 self.websocket.emitter.on(command, callback)
@@ -198,6 +204,37 @@ class Client(HttpClient):
             raise NoCommunity()
 
         return self
+    
+    async def community(
+        self, 
+        community: Union[str, int, Community] = GLOBAL_ID
+    ) -> 'Client':        
+        client = copy(self)
+        
+        if isinstance(community, str):
+            if community.isdigit():
+                client.ndc_id = int(community)
+                
+            else:
+                if "http" not in community and "://" not in community:
+                    community = f"https://aminoapps.com/c/{community}"
+            
+                link_info = await self.get_link_info(community)
+                
+                client.ndc_id = link_info.community.ndcId
+                client.community_info = link_info.community
+                
+        elif isinstance(community, Community):
+            client.community_info = community
+            client.ndc_id = community.ndcId
+        
+        elif isinstance(community, int):
+            client.ndc_id = community       
+            
+        else:
+            raise NoCommunity()
+
+        return client
     
     async def login(self, email: str, password: str, device_id: str = None) -> Auth:
         return await self.login_email(email, f"0 {password}", device_id)
@@ -241,7 +278,7 @@ class Client(HttpClient):
                     self.auth.account = auth.account
                     
                     return self.auth
-        except KeyError or JSONDecodeError or TypeError:
+        except KeyError or ujson.JSONDecodeError or TypeError:
             print("WARN: Your cache is corrupted and has been deleted to be recreated.")
             os.remove(".ed.cache")
             
@@ -249,62 +286,26 @@ class Client(HttpClient):
         await set_cache(email, auth.dict())
         
         return auth
-    
-    def create_bubble_config(
-        self, 
-        allowedSlots: list = None, 
-        contentInsets: list = None, 
-        coverImage: str = None, 
-        id: str = None, 
-        name: str = None, 
-        previewBackgroundUrl: str = None, 
-        slots: list = None,
-        templateId: str = None, 
-        version: int = 1, 
-        vertexInset: int = 0,
-        zoomPoint: list = None, 
-        backgroundPath: str = None, 
-        color: str = None, 
-        linkColor: str = None
-    ) -> ChatBubble.Config:
-        bubbleConfig = jsonify(
-            allowedSlots=allowedSlots or [{"align":1,"x":5,"y":-5},{"align":2,"x":-30,"y":-5},{"align":4,"x":-30,"y":5},{"align":3,"x":5,"y":5}],
-            contentInsets=contentInsets or [26,33,18,49],
-            coverImage=coverImage or "http://cb1.narvii.com/7991/fea4e00136e7c0cba79f3b1c0a130d20a12a5624r10-356-160_00.png",
-            id=id,
-            name=name or "Spring (Template)",
-            previewBackgroundUrl=previewBackgroundUrl or "http://cb1.narvii.com/images/6846/96234993898693503497b011ad56c95f028790fa_00.png",
-            slots=slots,
-            templateId=templateId or "949156e1-cc43-49f0-b9cf-3bbbb606ad6e",
-            version=version,
-            vertexInset=vertexInset,
-            zoomPoint=zoomPoint or [41, 44],
-            backgroundPath=backgroundPath or "background.png",
-            color=color or "#fff45e",
-            linkColor=linkColor or "#74ff32"
-        )
-        
-        return ChatBubble.Config(**bubbleConfig)
 
-    async def generate_bubble_file(self, bubbleImage: bytes = None, bubbleConfig: ChatBubble.Config = None) -> bytes:
-        if bubbleImage is None:
-            response = await self.session.get(
-                "http://cb1.narvii.com/images/6846/eebb8b22237e1b80f46de62284abd0c74cb440f9_00.png")
-            bubbleImage = await response.read()
-
-        if not bubbleConfig:
-            bubbleConfig = self.create_bubble_config()
-
+    async def generate_bubble_file(self, bubbleImage: bytes, bubbleConfig: ChatBubble.Config) -> bytes:
         buffer = io.BytesIO()
-        with ZipFile(buffer, 'w', ZIP_DEFLATED) as zipfile:
+        with ZipFile(buffer, "w", ZIP_DEFLATED) as zipfile:
             zipfile.writestr(bubbleConfig.backgroundPath, bubbleImage)
             zipfile.writestr("config.json", bubbleConfig.json())
         return buffer.getvalue()
 
     def load_bubble(self, bubble_zip: bytes) -> Tuple[bytes, ChatBubble.Config]:
-        with ZipFile(io.BytesIO(bubble_zip), 'r') as zipfile:
+        with ZipFile(io.BytesIO(bubble_zip), "r") as zipfile:
             config = loads(zipfile.read("config.json"))
 
             config = ChatBubble.Config(**config)
             background = zipfile.read(config.backgroundPath)
         return background, config
+    
+    async def load_file(self, path: str) -> bytes:
+        async with aiofile.async_open(path, "wb") as fp:
+            return await fp.read()
+        
+    async def download_file(self, url: str, **kwargs) -> bytes:
+        response = await self.session.get(url, **kwargs)
+        return await response.read()

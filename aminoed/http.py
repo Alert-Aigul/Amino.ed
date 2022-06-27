@@ -47,7 +47,7 @@ class HttpClient:
         user_agent = "Amino.ed Python/{0[0]}.{0[1]} Bot"
         self.user_agent: str = user_agent.format(sys.version_info)
         
-        self.upload_media
+        self.post_blog
         
     async def request(self, method: str, path: str, **kwargs):
         ndc_id = kwargs.pop("ndc_id", self.ndc_id)
@@ -999,22 +999,22 @@ class HttpClient:
     async def post_blog(self, title: str, content: str, image_list: list = None, caption_list: list = None, 
             categoriesList: list = None, background_color: str = None, fans_only: bool = False, extensions: Dict = None) -> int:
 
-        if caption_list and image_list:
-            mediaList = [[100, await self.upload_media(image), caption] for image, caption in zip(image_list, caption_list)]
-
-        elif image_list:
-            mediaList = [[100, await self.upload_media(image), None] for image in image_list]
-
         data = jsonify(
             address=None,
             content=content,
             title=title,
-            mediaList=mediaList,
             extensions=extensions,
             latitude=0,
             longitude=0,
             eventSource=SourceTypes.GLOBAL_COMPOSE
         )
+        
+        if caption_list and image_list:
+            data["mediaList"] = [[100, await self.upload_media(image), caption] 
+                                 for image, caption in zip(image_list, caption_list)]
+
+        elif image_list:
+            data["mediaList"] = [[100, await self.upload_media(image), None] for image in image_list]
 
         if fans_only:
             data["extensions"] = jsonify(fansOnly=fans_only)

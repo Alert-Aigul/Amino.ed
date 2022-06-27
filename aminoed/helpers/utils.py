@@ -15,6 +15,7 @@ PREFIX = bytes.fromhex("42")
 SIG_KEY = bytes.fromhex("F8E7A61AC3F725941E3AC7CAE2D688BE97F30B93")
 DEVICE_KEY = bytes.fromhex("02B258C63559D8804321C5D5065AF320358D366F")
 
+CACHE = {}
 CACHE_LOCK = asyncio.Lock()
 
 
@@ -96,30 +97,34 @@ def is_json(myjson) -> bool:
 
 
 async def set_cache(key: str, value: Any) -> Any:
+    global CACHE
+    
     async with CACHE_LOCK:
         try:
-            async with async_open(".ed.cache") as file:
-                cache = loads(await file.read())
+            if not CACHE:
+                async with async_open(".ed.cache") as file:
+                    CACHE = loads(await file.read())
         except FileNotFoundError:
-            cache = {}
+            pass
     
-        cache.update({
-            key: value
-        })
+        CACHE.update({key: value})
         
         async with async_open(".ed.cache", "w") as file:
-            await file.write(dumps(cache))
+            await file.write(dumps(CACHE))
 
 
 async def get_cache(key: str, default: Any = None) -> Any:
+    global CACHE
+    
     async with CACHE_LOCK:
         try:
-            async with async_open(".ed.cache") as file:
-                cache: dict = loads(await file.read())
+            if not CACHE:
+                async with async_open(".ed.cache") as file:
+                    CACHE = loads(await file.read())
         except FileNotFoundError:
             return default
     
-        return cache.get(key, default)
+        return CACHE.get(key, default)
 
 
 def properties(objects: list, name: str):

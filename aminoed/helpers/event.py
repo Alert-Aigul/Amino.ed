@@ -13,7 +13,7 @@ class Event(BaseEvent):
     
     client: Optional[Any] = None
         
-    async def send(
+    async def send_message(
         self, 
         message: str = None,
         mentions: list = None, 
@@ -23,7 +23,7 @@ class Event(BaseEvent):
         return await self.client.send_message(
             self.threadId, message, type, reply_to_id, mentions)
 
-    async def reply(
+    async def reply_message(
         self,
         message: str = None,
         mentions: list = None,
