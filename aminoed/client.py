@@ -1,6 +1,5 @@
 import io
 import sys
-import ujson
 import aiofile
 import requests
 
@@ -13,7 +12,7 @@ from zipfile import ZIP_DEFLATED, ZipFile
 from eventemitter import EventEmitter
 
 from . import __version__, __title__
-from .http import HttpClient
+from .http import HttpClient, WebHttpClient
 from .helpers.utils import *
 from .helpers.exceptions import NoCommunity
 from .helpers.types import GLOBAL_ID
@@ -188,7 +187,7 @@ class Client(HttpClient):
                 
             else:
                 if "http" not in community and "://" not in community:
-                    community = f"https://aminoapps.com/c/{community}"
+                    community = f"{WebHttpClient.URL}c/{community}"
             
                 link_info = await self.get_link_info(community)
                 
@@ -219,7 +218,7 @@ class Client(HttpClient):
                 
             else:
                 if "http" not in community and "://" not in community:
-                    community = f"https://aminoapps.com/c/{community}"
+                    community = f"{WebHttpClient.URL}c/{community}"
             
                 link_info = await self.get_link_info(community)
                 
@@ -292,8 +291,7 @@ class Client(HttpClient):
                     
                     self.auth = auth
                     return self.auth
-        except Exception as e:
-            print(e)
+        except Exception:
             os.remove(".ed.cache")
             raise Exception("Wrong cache! Restart your script.")
             

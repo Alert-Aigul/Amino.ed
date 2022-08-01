@@ -20,7 +20,7 @@ from .helpers.exceptions import CheckException, IpTomporaryBan, SpecifyType, Htm
 
 
 class WebHttpClient:
-    URL = "https://aminoapps.com"
+    URL = "https://aminoapps.com/"
     
     def __init__(
         self,
@@ -43,7 +43,7 @@ class WebHttpClient:
         return f"{self.URL}/partial/main-chat-window?ndcId={self.ndc_id}"
         
     async def request(self, method: str, path: str, **kwargs):
-        url = f"{self.URL}/api/{path}"
+        url = f"{self.URL}api{path}"
 
         headers: Dict[str, str] = {
             "User-Agent": self.user_agent,
@@ -115,7 +115,7 @@ class WebHttpClient:
 
 
 class HttpClient:
-    URL: str = "https://service.narvii.com"
+    URL: str = "https://service.narvii.com/"
     LANGUAGE = Language.ENG
 
     def __init__(
@@ -147,7 +147,7 @@ class HttpClient:
         
     async def request(self, method: str, path: str, **kwargs):
         ndc_id = kwargs.pop("ndc_id", self.ndc_id)
-        url = f"{self.URL}/api/v1/{get_ndc(ndc_id)}{path}"
+        url = f"{self.URL}api/v1{get_ndc(ndc_id)}{path}"
             
         if kwargs.pop("full_url", None):
             url = kwargs.get("full_url", url)
