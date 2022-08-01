@@ -276,6 +276,7 @@ class Client(HttpClient):
         self, 
         email: str, 
         password: str = None,
+        device: str = None,
         is_temp: bool = False
     ) -> Auth:
         try:
@@ -295,7 +296,7 @@ class Client(HttpClient):
             os.remove(".ed.cache")
             raise Exception("Wrong cache! Restart your script.")
             
-        auth = await self.login(email, password)
+        auth = await self.login(email, password, device)
         await set_cache(email, auth.dict(), is_temp)
         
         return auth
