@@ -1,24 +1,122 @@
+from hashlib import sha256
 import json
+from random import randint
 import sys
 
 from uuid import uuid4
 from time import time
 from locale import localeconv
 from base64 import b64encode
-from typing import Dict, List, Literal, Optional, Union
+from typing import Dict, List, Optional, Union
 
 from aiohttp import BaseConnector, BasicAuth, ClientSession, ClientTimeout, ContentTypeError
 from json_minify import json_minify
 
 from .helpers.models import *
 
-from .helpers.types import GLOBAL_ID, ChatPublishTypes, ContentTypes, FeaturedTypes, ObjectTypes, PathTypes, RepairTypes, SourceTypes, UserTypes
-from .helpers.utils import generate_signature, generate_device, get_ndc, jsonify, decode_sid
+from .helpers.types import GLOBAL_ID, ChatPublishTypes, ContentTypes, FeaturedTypes, Language, ObjectTypes, PathTypes, RepairTypes, SourceTypes, UserTypes
+from .helpers.utils import generate_signature, generate_device, get_ndc, jsonify
 from .helpers.exceptions import CheckException, IpTomporaryBan, SpecifyType, HtmlError
 
 
+class WebHttpClient:
+    URL = "https://aminoapps.com"
+    
+    def __init__(
+        self,
+        ndc_id: Optional[int] = None,
+        sid: Optional[str] = None,
+        session: Optional[ClientSession] = None,
+        connector: Optional[BaseConnector] = None
+    ) -> None:
+        self.connector: Optional[BaseConnector] = connector
+        self.session: ClientSession = session or ClientSession()
+        
+        self.sid: Optional[str] = sid
+        self.ndc_id: int = ndc_id or GLOBAL_ID
+        
+        user_agent = "Amino.ed Python/{0[0]}.{0[1]} Bot"
+        self.user_agent: str = user_agent.format(sys.version_info)
+    
+    @property
+    def referer(self):
+        return f"{self.URL}/partial/main-chat-window?ndcId={self.ndc_id}"
+        
+    async def request(self, method: str, path: str, **kwargs):
+        url = f"{self.URL}/api/{path}"
+
+        headers: Dict[str, str] = {
+            "User-Agent": self.user_agent,
+            "x-requested-with": "xmlhttprequest",
+            "cookie": f"sid={self.sid}",
+            "referer": self.referer,
+            "host": "aminoapps.com"
+        }
+        
+        if kwargs.get("json") is not None:
+            headers["Content-Type"] = ContentTypes.JSON
+
+            data = kwargs.pop("json")
+            kwargs["data"] = json.dumps(data)
+        
+        kwargs["headers"] = headers
+        response_json: Optional[Dict] = None
+
+        async with self.session.request(method, url, **kwargs) as response:
+            try:
+                response_json: Dict = await response.json(loads=json.loads)
+            except ContentTypeError:
+                response_text = await response.text()
+                raise HtmlError(response_text)
+
+            if response.status != 200:
+                if not self.session.closed:
+                    await self.session.close()
+
+                return CheckException(response_json)
+
+            return response_json or response.status
+
+    async def join_chat(self, thread_id: str):
+        data = jsonify(ndcId=f"x{self.ndc_id}", threadId=thread_id)
+        return await self.request("POST", f"/join-thread", json=data)
+
+    async def send_message(self, thread_id: str, message: str, type: int = 0):
+        data = jsonify(
+            ndcId=f"x{self.ndc_id}",
+            threadId=thread_id,
+            message=jsonify(
+                content=message,
+                mediaType=0,
+                type=type,
+                sendFailed=False,
+                clientRefId=0
+            )
+        )
+
+        return await self.request("POST", f"/add-chat-message", json=data)
+    
+    # image - upload image link
+    async def send_image(self, thread_id: str, image: str):        
+        data = jsonify(
+            ndcId=f"x{self.ndc_id}",
+            threadId=thread_id,
+            message=jsonify(
+                content=None,
+                mediaType=100,
+                type=0,
+                sendFailed=False,
+                clientRefId=0,
+                mediaValue=image
+            )
+        )
+
+        return await self.request("POST", f"/add-chat-message", json=data)
+
+
 class HttpClient:
-    API: str = "https://service.narvii.com/api/v1"
+    URL: str = "https://service.narvii.com"
+    LANGUAGE = Language.ENG
 
     def __init__(
         self,
@@ -44,21 +142,20 @@ class HttpClient:
         self.proxy: Optional[str] = proxy
         self.proxy_auth: Optional[BasicAuth] = proxy_auth
 
-        user_agent = "Amino.ed Python/{0[0]}.{0[1]} Bot"
-        self.user_agent: str = user_agent.format(sys.version_info)
-        
-        self.post_blog
+        user_agent = "Amino.ed Python/{0[0]}.{0[1]} Bot/{1}"
+        self.user_agent: str = user_agent.format(sys.version_info, randint(1, 9*9))
         
     async def request(self, method: str, path: str, **kwargs):
         ndc_id = kwargs.pop("ndc_id", self.ndc_id)
-        url = f"{self.API}{get_ndc(ndc_id)}{path}"
+        url = f"{self.URL}/api/v1/{get_ndc(ndc_id)}{path}"
             
         if kwargs.pop("full_url", None):
             url = kwargs.get("full_url", url)
 
         headers: Dict[str, str] = {
             "User-Agent": self.user_agent,
-            "NDCDEVICEID": self.device_id
+            "NDCDEVICEID": self.device_id,
+            "Accept-Language": self.LANGUAGE
         }
 
         if self.auth.sid is not None:
@@ -106,8 +203,11 @@ class HttpClient:
                     await self.session.close()
 
                 return CheckException(response_json)
-
             return response_json or response.status
+    
+    @property
+    def web(self) -> WebHttpClient:
+        return WebHttpClient(self.ndc_id, self.auth.sid, self.session)
         
     @property
     def session(self) -> ClientSession:
@@ -143,43 +243,29 @@ class HttpClient:
     def auth(self, auth: Auth):
         self._auth = auth 
 
-    async def login_email(self, email: str, password: str, device_id: str = None) -> Auth:
+    async def base_login(
+        self, 
+        email: str = None, 
+        password: str = None, 
+        device_id: str = None, 
+        phoneNumber: str = None
+    ) -> Auth:
         data = jsonify(
             email=email,
             secret=password,
             clientType=100,
             deviceID=device_id or self.device_id,
-            action="normal"
-        )
-
-        response = Auth(**(await self.request("POST", "/auth/login", json=data, ndc_id=GLOBAL_ID)))
-        self.auth = response
-        self.auth.deviceId = self.device_id
-
-        return self.auth
-    
-    async def login_phone(self, phoneNumber: str, password: str, device_id: str = None) -> Auth:
-        data = jsonify(
-            phoneNumber=phoneNumber,
-            secret=password,
-            clientType=100,
-            deviceID=device_id or self.device_id,
-            action="normal"
-        )
-
-        response = Auth(**(await self.request("POST", "/auth/login", json=data, ndc_id=GLOBAL_ID)))
-        self.auth = response
-        self.auth.deviceId = self.device_id
-
-        return self.auth
-    
-    async def login_sid(self, sid: str) -> Auth:
-        self.auth = Auth(
-            sid=sid,
-            auid=decode_sid(sid).uid,
-            deviceId=self.device_id
+            action="normal",
+            v=2
         )
         
+        if phoneNumber:
+            data["phoneNumber"] = phoneNumber
+
+        response = Auth(**(await self.request("POST", "/auth/login", json=data, ndc_id=GLOBAL_ID)))
+        self.auth = response
+        self.auth.deviceId = self.device_id
+
         return self.auth
 
     async def logout(self, remove_auth: bool = True) -> Dict:
@@ -1287,6 +1373,10 @@ class HttpClient:
         
         response = await self.request("GET", f"/feed/blog-all?{params}")
         return list(map(lambda o: Message(**o, **response.get("paging", {})),  response["blogList"]))
+    
+    async def get_recent_wikis(self, start: int = 0, size: int = 25):
+        response = await self.request("GET", f"/item?type=catalog-all&start={start}&size={size}")
+        return list(map(lambda o: Wiki(**o), response["itemList"]))
     
     async def get_notifications(self, start: int = 0, size: int = 100) -> Dict:
         return await self.request("GET", f"/notification?pagingType=t&start={start}&size={size}")["notificationList"]

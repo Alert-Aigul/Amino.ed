@@ -9,6 +9,7 @@ from aiohttp.client_ws import ClientWebSocketResponse as WSConnection
 from eventemitter.emitter import EventEmitter
 from ujson import loads
 
+from .helpers.event import Event
 from .helpers.models import Auth
 from .helpers.types import EventTypes, allTypes
 from .helpers.utils import generate_signature, get_event_loop
@@ -22,7 +23,8 @@ class AminoWebSocket:
 
         self.auth: Auth = auth
         self.emitter: EventEmitter = EventEmitter()
-
+        self.event_session = ClientSession()
+        
         self.reconnecting: bool = None
         self.reconnect_cooldown: int = 120
         
@@ -47,9 +49,9 @@ class AminoWebSocket:
                 if recieved_data["t"] == 1000:
                     try:
                     
-                        context = getattr(sys.modules["aminoed"], "Event")
+                        # context = getattr(sys.modules["aminoed"], "Event")
                         
-                        event = context(self.auth, recieved_data["o"])       
+                        event = Event(self.event_session, self.auth, recieved_data["o"])       
                         self.emitter.emit(EventTypes.MESSAGE, event)
                         
                         event_type = f"{event.type}:{event.mediaType}"

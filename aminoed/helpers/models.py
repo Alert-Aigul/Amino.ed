@@ -170,6 +170,8 @@ class Auth(BaseModel):
     secret:   Optional[str]
     user:     Optional[UserProfile] = Field(alias="userProfile")
     deviceId: Optional[str]
+    
+    
 
 
 class Community(BaseModel):

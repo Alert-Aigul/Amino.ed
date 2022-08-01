@@ -281,7 +281,11 @@ class PathTypes:
     EXTERNAL_CONTENT = "module.externalContent.enabled"
     TOPIC_CATEGORIES = "module.topicCategories.enabled"
     
-    LEFT_SIDE_PANEL_ICON_COLOR = "appearance.leftSidePanel.style.iconColor"    
+    LEFT_SIDE_PANEL_ICON_COLOR = "appearance.leftSidePanel.style.iconColor"   
+    
+class Language:
+    RU: str = "ru-UA"
+    ENG: str = "en-US" 
 
 class PromoteRankTypes:
     AGENT = "transfer-agent"

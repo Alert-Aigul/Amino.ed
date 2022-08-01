@@ -2,13 +2,14 @@ __title__ = 'Amino.ed'
 __author__ = 'Alert Aigul'
 __license__ = 'MIT'
 __copyright__ = 'Copyright 2020-2022 Alert'
-__version__ = '2.8.1'
+__version__ = '2.8.2'
 
 from asyncio import sleep, create_task, gather
 from asyncio.events import AbstractEventLoop
 
 from aiohttp import BaseConnector
 
+from .http import HttpClient
 from .client import Client
 from .websocket import AminoWebSocket
 
@@ -17,6 +18,12 @@ from .helpers.types import *
 from .helpers.models import *
 from .helpers.exceptions import *
 from .helpers.event import *
+
+RU: str = Language.RU
+ENG: str = Language.ENG
+
+def set_lang(lang: str = Language.ENG):
+    HttpClient.LANGUAGE = lang
 
 
 def run_with_client(
@@ -28,6 +35,7 @@ def run_with_client(
     proxy_auth: Optional[str] = None,
     timeout: Optional[int] = None,
     connector: Optional[BaseConnector] = None,
+    session: Optional[ClientSession] = None,
 ) -> None:
     async def start(loop, callback):
         async with Client(
@@ -38,6 +46,7 @@ def run_with_client(
             proxy_auth,
             timeout, 
             None,
+            session,
             connector, 
             check_updates
         ) as client:

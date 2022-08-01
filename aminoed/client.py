@@ -7,7 +7,7 @@ import requests
 from copy import copy
 from typing import Optional, Tuple
 
-from aiohttp import BaseConnector
+from aiohttp import BaseConnector, ClientSession
 from asyncio import AbstractEventLoop, sleep
 from zipfile import ZIP_DEFLATED, ZipFile
 from eventemitter import EventEmitter
@@ -31,12 +31,14 @@ class Client(HttpClient):
         proxy_auth: Optional[str] = None,
         timeout: Optional[int] = None,
         prefix: Optional[str] = None,
+        session: Optional[ClientSession] = None,
         connector: Optional[BaseConnector] = None,
         check_updates: bool = True,
         auth: Optional[Auth] = None
     ) -> None:
         super().__init__(ndc_id, None, proxy, proxy_auth, timeout, connector)
         self._loop: Optional[AbstractEventLoop] = loop
+        self._session = session
         
         self.device_id: str = device_id or self.device_id
         self.emitter: EventEmitter = EventEmitter(self._loop)
@@ -77,8 +79,8 @@ class Client(HttpClient):
     async def __aexit__(self, *args) -> None:
         await self._close_session()
 
-    def __del__(self):
-        self.loop.create_task(self._close_session())
+    # def __del__(self):
+    #     self.loop.create_task(self._close_session())
 
     async def _close_session(self):
         if not self.session.closed:
@@ -237,10 +239,22 @@ class Client(HttpClient):
         return client
     
     async def login(self, email: str, password: str, device_id: str = None) -> Auth:
-        return await self.login_email(email, f"0 {password}", device_id)
+        return await self.login_email(email, password, device_id)
     
-    async def login_phone(self, phone: str, password: str, device_id: str = None) -> Auth:
-        return await self.login_phone(phone, f"0 {password}", device_id)
+    async def login_email(self, email: str, password: str, device_id: str = None) -> Auth:
+        return await self.base_login(email, f"0 {password}", device_id)
+    
+    async def login_phone(self, phoneNumber: str, password: str, device_id: str = None) -> Auth:
+        return await self.base_login(None, f"0 {password}", device_id, phoneNumber)
+    
+    async def login_sid(self, sid: str) -> Auth:
+        self.auth = Auth(
+            sid=sid,
+            auid=decode_sid(sid).uid,
+            deviceId=self.device_id
+        )
+        
+        return self.auth
     
     def start(self, email: str = None, password: str = None, sid: str = None) -> Auth:
         if not sid:
@@ -262,11 +276,13 @@ class Client(HttpClient):
     async def cached_login(
         self, 
         email: str, 
-        password: str = None
+        password: str = None,
+        is_temp: bool = False
     ) -> Auth:
         try:
             if (auth_json := await get_cache(email, False)):
-                auth = Auth(**auth_json)
+                user_profile = auth_json.pop("user")
+                auth = Auth(**auth_json, userProfile=user_profile)
                 
                 auth_json["sid"]
                 # Calling KeyError if sid not defined
@@ -274,16 +290,15 @@ class Client(HttpClient):
                 if not sid_expired(auth.sid):
                     await self.login_sid(auth.sid)
                     
-                    self.auth.user = auth.user
-                    self.auth.account = auth.account
-                    
+                    self.auth = auth
                     return self.auth
-        except KeyError or ujson.JSONDecodeError or TypeError:
-            print("WARN: Your cache is corrupted and has been deleted to be recreated.")
+        except Exception as e:
+            print(e)
             os.remove(".ed.cache")
+            raise Exception("Wrong cache! Restart your script.")
             
         auth = await self.login(email, password)
-        await set_cache(email, auth.dict())
+        await set_cache(email, auth.dict(), is_temp)
         
         return auth
 

@@ -6,7 +6,7 @@ from hashlib import sha1
 from time import time
 from typing import Any, Dict, List, Union
 from aiofile import async_open
-from ujson import loads, dumps
+from ujson import loads, dumps, JSONDecodeError
 from base64 import urlsafe_b64decode, b64encode, urlsafe_b64encode
 
 from .models import SID
@@ -15,7 +15,16 @@ PREFIX = bytes.fromhex("42")
 SIG_KEY = bytes.fromhex("F8E7A61AC3F725941E3AC7CAE2D688BE97F30B93")
 DEVICE_KEY = bytes.fromhex("02B258C63559D8804321C5D5065AF320358D366F")
 
-CACHE = {}
+try:
+    with open(".ed.cache") as file:
+        CACHE = loads(file.read())
+except JSONDecodeError:
+    CACHE = {}
+except FileNotFoundError:
+    CACHE = {}
+except FileExistsError:
+    CACHE = {}
+
 CACHE_LOCK = asyncio.Lock()
 
 
@@ -96,18 +105,14 @@ def is_json(myjson) -> bool:
     return True
 
 
-async def set_cache(key: str, value: Any) -> Any:
+async def set_cache(key: str, value: Any, is_temp: bool = False) -> Any:
     global CACHE
     
-    async with CACHE_LOCK:
-        try:
-            if not CACHE:
-                async with async_open(".ed.cache") as file:
-                    CACHE = loads(await file.read())
-        except FileNotFoundError:
-            pass
-    
+    async with CACHE_LOCK:    
         CACHE.update({key: value})
+        
+        if is_temp:
+            return
         
         async with async_open(".ed.cache", "w") as file:
             await file.write(dumps(CACHE))
@@ -116,14 +121,7 @@ async def set_cache(key: str, value: Any) -> Any:
 async def get_cache(key: str, default: Any = None) -> Any:
     global CACHE
     
-    async with CACHE_LOCK:
-        try:
-            if not CACHE:
-                async with async_open(".ed.cache") as file:
-                    CACHE = loads(await file.read())
-        except FileNotFoundError:
-            return default
-    
+    async with CACHE_LOCK:    
         return CACHE.get(key, default)
 
 
