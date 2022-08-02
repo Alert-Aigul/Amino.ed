@@ -1,8 +1,7 @@
-from hashlib import sha256
 import json
-from random import randint
 import sys
 
+from random import randint
 from uuid import uuid4
 from time import time
 from locale import localeconv

@@ -1,12 +1,12 @@
 import asyncio
 import hmac
 import os
+import json
 
 from hashlib import sha1
 from time import time
 from typing import Any, Dict, List, Union
 from aiofile import async_open
-from ujson import loads, dumps, JSONDecodeError
 from base64 import urlsafe_b64decode, b64encode, urlsafe_b64encode
 
 from .models import SID
@@ -17,8 +17,8 @@ DEVICE_KEY = bytes.fromhex("02B258C63559D8804321C5D5065AF320358D366F")
 
 try:
     with open(".ed.cache") as file:
-        CACHE = loads(file.read())
-except JSONDecodeError:
+        CACHE = json.loads(file.read())
+except ValueError:
     CACHE = {}
 except FileNotFoundError:
     CACHE = {}
@@ -58,7 +58,7 @@ def generate_sid(key: str, userId: str, ip: str, timestamp: int = int(time()), c
         "6": clientType
     }
     
-    identifier = b"\x02" + dumps(data).encode()
+    identifier = b"\x02" + json.dumps(data).encode()
     mac = hmac.new(bytes.fromhex(key), identifier, sha1)
     return urlsafe_b64encode(identifier + mac.digest()).decode().replace("=", "")
 
@@ -69,7 +69,7 @@ def decode_sid(sid: str) -> SID:
     
     prefix = uncoded_sid[:1].hex()
     signature = uncoded_sid[-20:].hex()
-    data = loads(uncoded_sid[1:-20])
+    data = json.loads(uncoded_sid[1:-20])
     
     return SID(
         original=sid, 
@@ -99,7 +99,7 @@ def sid_expired(sid: str) -> bool:
 
 def is_json(myjson) -> bool:
     try:
-        loads(myjson)
+        json.loads(myjson)
     except ValueError:
         return False
     return True
@@ -115,7 +115,7 @@ async def set_cache(key: str, value: Any, is_temp: bool = False) -> Any:
             return
         
         async with async_open(".ed.cache", "w") as file:
-            await file.write(dumps(CACHE))
+            await file.write(json.dumps(CACHE))
 
 
 async def get_cache(key: str, default: Any = None) -> Any:

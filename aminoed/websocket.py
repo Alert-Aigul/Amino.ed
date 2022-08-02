@@ -1,5 +1,3 @@
-import sys
-
 from time import time
 from contextlib import suppress
 from asyncio import AbstractEventLoop, sleep
@@ -7,7 +5,6 @@ from aiohttp.client import ClientSession
 from aiohttp.client_exceptions import WSServerHandshakeError
 from aiohttp.client_ws import ClientWebSocketResponse as WSConnection
 from eventemitter.emitter import EventEmitter
-from ujson import loads
 
 from .helpers.event import Event
 from .helpers.models import Auth
@@ -44,7 +41,7 @@ class AminoWebSocket:
                 continue
 
             with suppress(TypeError):
-                recieved_data = await self._connection.receive_json(loads=loads)
+                recieved_data = await self._connection.receive_json()
 
                 if recieved_data["t"] == 1000:
                     try:

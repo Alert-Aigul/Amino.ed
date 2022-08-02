@@ -42,7 +42,6 @@ setup(
         "setuptools",
         "requests",
         "aiohttp",
-        "ujson",
         "pydantic",
         "aiofile",
         "eventemitter"

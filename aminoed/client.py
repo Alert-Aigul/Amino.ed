@@ -1,4 +1,5 @@
 import io
+import json
 import sys
 import aiofile
 import requests
@@ -310,7 +311,7 @@ class Client(HttpClient):
 
     def load_bubble(self, bubble_zip: bytes) -> Tuple[bytes, ChatBubble.Config]:
         with ZipFile(io.BytesIO(bubble_zip), "r") as zipfile:
-            config = loads(zipfile.read("config.json"))
+            config = json.loads(zipfile.read("config.json"))
 
             config = ChatBubble.Config(**config)
             background = zipfile.read(config.backgroundPath)

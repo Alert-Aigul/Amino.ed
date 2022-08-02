@@ -1,8 +1,5 @@
 # thanks Slimakoi#6422
 
-import json
-
-
 class UnsupportedService(Exception):
     """
     - **API Code** : 100
