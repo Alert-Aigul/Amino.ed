@@ -65,6 +65,11 @@ class UserTypes:
     FEATURED: str = "featured"
     LEADERS: str =  "leaders"
     CURATORS: str = "curators"
+    
+class PostTypes:
+    BLOG: str = "blog"
+    WIKI: str = "wiki"
+    USER: str = "user"
 
 class LeadernoardTypes:
     DAY: int =        1

@@ -13,7 +13,7 @@ from json_minify import json_minify
 
 from .helpers.models import *
 
-from .helpers.types import GLOBAL_ID, ChatPublishTypes, ContentTypes, FeaturedTypes, Language, ObjectTypes, PathTypes, RepairTypes, SourceTypes, UserTypes
+from .helpers.types import GLOBAL_ID, ChatPublishTypes, ContentTypes, FeaturedTypes, Language, ObjectTypes, PathTypes, PostTypes, RepairTypes, SourceTypes, UserTypes
 from .helpers.utils import generate_signature, generate_device, get_ndc, jsonify
 from .helpers.exceptions import CheckException, IpTomporaryBan, SpecifyType, HtmlError
 
@@ -51,12 +51,15 @@ class WebHttpClient:
             "referer": self.referer,
             "host": "aminoapps.com"
         }
-        
+            
         if kwargs.get("json") is not None:
             headers["Content-Type"] = ContentTypes.JSON
 
             data = kwargs.pop("json")
+            data["ndcId"] = get_ndc(self.ndc_id)[1:-2]
+
             kwargs["data"] = json.dumps(data)
+            print(data)
         
         kwargs["headers"] = headers
         response_json: Optional[Dict] = None
@@ -73,16 +76,13 @@ class WebHttpClient:
                     await self.session.close()
 
                 return CheckException(response_json)
+            
+            print(response.status, response_json)
 
             return response_json or response.status
 
-    async def join_chat(self, thread_id: str):
-        data = jsonify(ndcId=f"x{self.ndc_id}", threadId=thread_id)
-        return await self.request("POST", f"/join-thread", json=data)
-
     async def send_message(self, thread_id: str, message: str, type: int = 0):
         data = jsonify(
-            ndcId=f"x{self.ndc_id}",
             threadId=thread_id,
             message=jsonify(
                 content=message,
@@ -98,7 +98,6 @@ class WebHttpClient:
     # image - upload image link
     async def send_image(self, thread_id: str, image: str):        
         data = jsonify(
-            ndcId=f"x{self.ndc_id}",
             threadId=thread_id,
             message=jsonify(
                 content=None,
@@ -111,7 +110,35 @@ class WebHttpClient:
         )
 
         return await self.request("POST", f"/add-chat-message", json=data)
-
+    
+    async def join_chat(self, thread_id: str):
+        data = jsonify(threadId=thread_id)
+        return await self.request("POST", f"/join-thread", json=data)
+    
+    async def leave_chat(self, thread_id: str):
+        data = jsonify(threadId=thread_id)
+        return await self.request("POST", "/leave-thread", json=data)
+    
+    async def follow(self, uid: str):
+        data = jsonify(followee_id=uid)
+        return await self.request("POST", "/follow-user", json=data)
+    
+    async def start_chat(self, uids: list, message: str = None):
+        data = jsonify(inviteeUids=uids, initialMessageContent=message, type=0)
+        return await self.request("POST", "/create-chat-thread", json=data)
+    
+    async def comment_blog(self, blog_id: str, comment: str):
+        data = jsonify(content=comment, postType=PostTypes.BLOG, postId=blog_id)
+        return await self.request("POST", "/submit_comment", json=data)
+    
+    async def comment_user(self, uid: str, comment: str):
+        data = jsonify(content=comment, postType=PostTypes.USER, postId=uid)
+        return await self.request("POST", "/submit_comment", json=data)
+    
+    async def comment_wiki(self, wiki_id: str, comment: str):
+        data = jsonify(content=comment, postType=PostTypes.WIKI, postId=wiki_id)
+        return await self.request("POST", "/submit_comment", json=data)
+    
 
 class HttpClient:
     URL: str = "https://service.narvii.com/"
@@ -1895,14 +1922,16 @@ class HttpClient:
         content: str = None, 
         aminoId: str = None, 
         primaryLanguage: str = None, 
-        themePackUrl: str = None
+        themePackUrl: str = None,
+        join_type: int = None # 0 - open, 1 - reqest, 2 - close
     ):
         data = jsonify(
             name=name,
             content=content,
             endpoint=aminoId,
             primaryLanguage=primaryLanguage,
-            themePackUrl=themePackUrl
+            themePackUrl=themePackUrl,
+            joinType=join_type
         )
 
         response = await self.request("POST", f"/community/settings", json=data)

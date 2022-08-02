@@ -57,3 +57,9 @@ class Event(BaseEvent):
 
     async def send_audio(self, audio: bytes):
         return await self.client.send_audio(self.threadId, audio)
+    
+    # async def send_to_user(self, message: str):
+    #     return await self.client.web.start_chat([self.uid or self.author.uid], message)
+    
+    # async def comment_user(self, comment: str):
+    #     return await self.client.web.comment_user(self.uid or self.author.uid, comment)
