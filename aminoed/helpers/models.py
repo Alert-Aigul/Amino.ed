@@ -539,7 +539,7 @@ class Thread(BaseModel):
     extensions:         Optional[Extensions]
     lastMessageSummary: Optional[LastMessage]
     tipInfo:            Optional[TipInfo]
-    userAddedTopicList: Optional[Topic]
+    # userAddedTopicList: Optional[Topic] Temporary
     uid:                Optional[str]
     membersSummary:     Optional[List[Member]]
     membersQuota:       Optional[int]
