@@ -14,8 +14,6 @@ from .helpers.models import Auth
 from .helpers.types import EventTypes, allTypes
 from .helpers.utils import generate_signature, get_event_loop
 
-import edamino
-
 
 class AminoWebSocket:
     def __init__(self, auth: Auth, loop: AbstractEventLoop = None) -> None:
