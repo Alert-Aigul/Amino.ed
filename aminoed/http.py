@@ -170,6 +170,7 @@ class HttpClient:
 
         user_agent = "Amino.ed Python/{0[0]}.{0[1]} Bot/{1}"
         self.user_agent: str = user_agent.format(sys.version_info, randint(1, 9*9))
+        self.user_moderation_history
         
     async def request(self, method: str, path: str, **kwargs):
         ndc_id = kwargs.pop("ndc_id", self.ndc_id)
@@ -1462,19 +1463,19 @@ class HttpClient:
         return await self.request("POST", f"/user-profile/featured/reorder", json=data)
     
     async def user_moderation_history(self, uid: str = None, size: int = 100) -> List[AdminLog]:
-        response = await self.request("GET", f"/admin/operation?pagingType=t&size={size}?objectId={uid}&objectType={ObjectTypes.USER}")
+        response = await self.request("GET", f"/admin/operation?pagingType=t&size={size}&objectId={uid}&objectType={ObjectTypes.USER}")
         return list(map(lambda o: AdminLog(**o), response["adminLogList"]))
 
     async def blog_moderation_history(self, blog_id: str = None, size: int = 100) -> List[AdminLog]:
-        response = await self.request("GET", f"/admin/operation?pagingType=t&size={size}?objectId={blog_id}&objectType={ObjectTypes.BLOG}")
+        response = await self.request("GET", f"/admin/operation?pagingType=t&size={size}&objectId={blog_id}&objectType={ObjectTypes.BLOG}")
         return list(map(lambda o: AdminLog(**o), response["adminLogList"]))
 
     async def wiki_moderation_history(self, wiki_id: str = None, size: int = 100) -> List[AdminLog]:
-        response = await self.request("GET", f"/admin/operation?pagingType=t&size={size}?objectId={wiki_id}&objectType={ObjectTypes.ITEM}")
+        response = await self.request("GET", f"/admin/operation?pagingType=t&size={size}&objectId={wiki_id}&objectType={ObjectTypes.ITEM}")
         return list(map(lambda o: AdminLog(**o), response["adminLogList"]))
 
     async def file_moderation_history(self, file_id: str = None, size: int = 100) -> List[AdminLog]:
-        response = await self.request("GET", f"/admin/operation?pagingType=t&size={size}?objectId={file_id}&objectType={ObjectTypes.FOLDER_FILE}")
+        response = await self.request("GET", f"/admin/operation?pagingType=t&size={size}&objectId={file_id}&objectType={ObjectTypes.FOLDER_FILE}")
         return list(map(lambda o: AdminLog(**o), response["adminLogList"]))
 
     async def feature_user(self, seconds: int, uid: str) -> int:
@@ -1696,7 +1697,7 @@ class HttpClient:
             )
         )
 
-        if self.auth.userProfile.membershipStatus == 0:
+        if self.auth.user.membershipStatus == 0:
             data["paymentContext"]["discountStatus"] = 0
 
         return await self.request("POST", f"/store/purchase", json=data)

@@ -45,6 +45,7 @@ class Client(HttpClient):
         
         self._websocket: Optional[AminoWebSocket] = None
         self.callbacks_to_execute: list = []
+        self.priority_callbacks_to_execute: list = []
         
         self.prefix = prefix or ""
         self.community_info: Optional[Community] = None
@@ -126,7 +127,8 @@ class Client(HttpClient):
         self,
         looping: bool = False,
         start_sleep: float = 0,
-        end_sleep: float = 0
+        end_sleep: float = 0,
+        priority: Union[int, bool] = None
     ):
         def _execute(callback):
             if self.auth.sid is not None:
@@ -134,12 +136,22 @@ class Client(HttpClient):
             
             async def execute():
                 if not looping:
+                    await sleep(start_sleep)
                     await callback()
+                    await sleep(end_sleep)
                     
                 while looping:
                     await sleep(start_sleep)
                     await callback()
                     await sleep(end_sleep)
+            
+            if isinstance(priority, int):
+                self.priority_callbacks_to_execute.insert(priority, execute)
+                return
+            
+            if isinstance(priority, bool):
+                self.priority_callbacks_to_execute.append(execute)
+                return
             
             self.callbacks_to_execute.append(execute)
             
@@ -262,16 +274,17 @@ class Client(HttpClient):
         else:
             self.loop.run_until_complete(self.login_sid(sid))
         
-        for callback in self.callbacks_to_execute:
-            self.loop.create_task(callback())
-        
         if not (conn := self.websocket._connection) or conn.closed:
             self.websocket.auth = self.auth
-            
             self.loop.run_until_complete(self.websocket.run())
-            self.loop.run_forever()
-
-        return self.auth
+            
+        for callback in self.priority_callbacks_to_execute:
+            self.loop.run_until_complete(callback())
+            
+        for callback in self.callbacks_to_execute:
+            self.loop.create_task(callback())
+            
+        self.loop.run_forever()
     
     async def cached_login(
         self, 

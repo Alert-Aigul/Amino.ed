@@ -130,7 +130,7 @@ def properties(objects: list, name: str):
 
 
 def list_to_lists(list: list, values_per_list: int):
-    return [list[i:i +values_per_list] for i in range(0, len(list),values_per_list)]
+    return [list[i:i +values_per_list] for i in range(0, len(list), values_per_list)]
 
 
 def jsonify(**kwargs) -> Dict:
