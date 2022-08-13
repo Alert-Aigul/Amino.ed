@@ -44,7 +44,8 @@ setup(
         "aiohttp",
         "pydantic",
         "aiofile",
-        "eventemitter"
+        "eventemitter",
+        "json_minify"
     ],
     setup_requires=[
         "wheel"

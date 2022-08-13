@@ -1,15 +1,18 @@
 from copy import copy
 from typing import Any, Optional, Union
 
-from ..http import HttpClient, WebHttpClient
+from ..client import Client
+from ..http import WebHttpClient
 from .models import Auth, BaseEvent, Message
 
 class Event(BaseEvent):
-    def __init__(self, client: HttpClient, auth: Auth, data) -> None:
+    def __init__(self, auth: Auth, data) -> None:
         super().__init__(**data, **data["chatMessage"])
         
-        self.client: HttpClient = copy(client)
+        self.client: Client = Client(self.ndcId, check_updates=False)
         self.client.auth = auth
+        self.client.ndc_id = self.ndcId
+        
         self.client.ndc_id = self.ndcId
         
         self.web: WebHttpClient = self.client.web

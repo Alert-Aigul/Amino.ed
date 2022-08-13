@@ -20,4 +20,8 @@ async def chatmembers(event: Event):
     chat = await event.client.get_chat_thread(event.threadId)
     await event.send_message(f"Chat members count: {chat.membersCount}.")
     
+@bot.on(MessageTypes.GENERAL) # On default message
+async def chatmembers(event: Event):
+    print(event.author.nickname, event.content)
+    
 bot.start("email", "password")

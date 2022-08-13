@@ -32,6 +32,7 @@ class WebHttpClient:
         self.connector: Optional[BaseConnector] = connector
         self.session: ClientSession = session or ClientSession()
         self.debug = debug
+        self.debug = debug
         
         self.sid: Optional[str] = sid
         self.ndc_id: int = ndc_id or GLOBAL_ID
@@ -154,7 +155,8 @@ class WebHttpClient:
 
 class HttpClient:
     URL: str = "https://service.narvii.com/"
-    LANGUAGE = Language.ENG
+    LANGUAGE: str = Language.ENG
+    _session: ClientSession = None
 
     def __init__(
         self,
@@ -167,7 +169,7 @@ class HttpClient:
         debug: bool = False
     ) -> None:
         self.connector: Optional[BaseConnector] = connector
-        self._session: Optional[ClientSession] = session
+        self._session: Optional[ClientSession] = session or self._session
         self.debug = debug
 
         self.ndc_id: int = GLOBAL_ID
@@ -237,6 +239,17 @@ class HttpClient:
                     raise IpTomporaryBan("403 Forbidden")
                 else:
                     raise HtmlError(response_json)
+                
+            if self.debug:
+                message = f"\n\n<---REQUEST {url} START--->\n\n"
+                message += json.dumps(headers) + "\n"
+                
+                if data is not None:
+                    message += data + "\n"
+            
+                message += f"\n{response.status} {json.dumps(response_json)}\n\n"
+                message += f"<---REQUEST {url} END--->\n\n"
+                print(message, end="")
                 
             if self.debug:
                 message = f"\n\n<---REQUEST {url} START--->\n\n"

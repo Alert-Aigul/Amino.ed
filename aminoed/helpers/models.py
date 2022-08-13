@@ -4,7 +4,6 @@ from pydantic import BaseModel, Field
 from typing import List, Optional, Any, Union, Dict
 
 
-
 class RestrictionInfo(BaseModel):
     discountStatus:    Optional[int]
     ownerUid:          Optional[str]

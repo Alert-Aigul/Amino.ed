@@ -2,18 +2,23 @@ __title__ = 'Amino.ed'
 __author__ = 'Alert Aigul'
 __license__ = 'MIT'
 __copyright__ = 'Copyright 2020-2022 Alert'
-__version__ = '2.8.4.4'
+__version__ = '2.8.4.5'
 
 from asyncio import sleep, create_task, gather
 from asyncio.events import AbstractEventLoop
+from .helpers.utils import *
+
+loop = get_event_loop()
 
 from aiohttp import BaseConnector, ClientSession
+# ClientSession.__del__ = lambda _: None
 
 from .http import HttpClient
+HttpClient._session = ClientSession(loop=loop)
+
 from .client import Client
 from .websocket import AminoWebSocket
 
-from .helpers.utils import *
 from .helpers.types import *
 from .helpers.models import *
 from .helpers.exceptions import *
@@ -30,7 +35,7 @@ def run_with_client(
     check_updates: bool = True,
     ndc_id: Optional[str] = None,
     device_id: Optional[str] = None,
-    loop: Optional[AbstractEventLoop] = None,
+    loop: Optional[AbstractEventLoop] = loop,
     proxy: Optional[str] = None,
     proxy_auth: Optional[str] = None,
     timeout: Optional[int] = None,
@@ -51,20 +56,22 @@ def run_with_client(
             connector, 
             check_updates,
             None,
+            debug,
+            None,
             debug
         ) as client:
             await callback(client)
 
     def _start(callback):
-        nonlocal loop
-        
-        loop = loop or get_event_loop()
         loop.run_until_complete(start(loop, callback))
     return _start
 
 
 def run():
     def start(callback):
-        loop = get_event_loop()
         loop.run_until_complete(callback())
     return start
+
+import atexit
+
+atexit.register(lambda: HttpClient._session._connector._close())

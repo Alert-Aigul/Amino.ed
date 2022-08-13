@@ -39,7 +39,7 @@ class Client(HttpClient):
     ) -> None:
         super().__init__(ndc_id, None, proxy, proxy_auth, timeout, connector, debug)
         self._loop: Optional[AbstractEventLoop] = loop
-        self._session = session
+        self._session = session or self._session
         
         self.device_id: str = device_id or self.device_id
         self.emitter: EventEmitter = EventEmitter(self._loop)
@@ -79,10 +79,16 @@ class Client(HttpClient):
         return self
 
     async def __aexit__(self, *args) -> None:
-        await self._close_session()
-
-    # def __del__(self):
-    #     self.loop.create_task(self._close_session())
+        # if self._session and not self._session.closed:
+        #     self._session._connector._close()
+        #     self._session._connector = None
+        pass
+            
+    def __del__(self):
+        # if self._session and not self._session.closed:
+        #     self._session._connector._close()
+        #     self._session._connector = None
+        pass
 
     async def _close_session(self):
         if not self.session.closed:
