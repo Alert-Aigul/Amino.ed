@@ -2,12 +2,12 @@ __title__ = 'Amino.ed'
 __author__ = 'Alert Aigul'
 __license__ = 'MIT'
 __copyright__ = 'Copyright 2020-2022 Alert'
-__version__ = '2.8.4.1'
+__version__ = '2.8.4.4'
 
 from asyncio import sleep, create_task, gather
 from asyncio.events import AbstractEventLoop
 
-from aiohttp import BaseConnector
+from aiohttp import BaseConnector, ClientSession
 
 from .http import HttpClient
 from .client import Client
@@ -36,6 +36,7 @@ def run_with_client(
     timeout: Optional[int] = None,
     connector: Optional[BaseConnector] = None,
     session: Optional[ClientSession] = None,
+    debug: bool = False
 ) -> None:
     async def start(loop, callback):
         async with Client(
@@ -48,7 +49,9 @@ def run_with_client(
             None,
             session,
             connector, 
-            check_updates
+            check_updates,
+            None,
+            debug
         ) as client:
             await callback(client)
 

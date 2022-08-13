@@ -2,12 +2,14 @@ import json
 import random
 from time import time
 from contextlib import suppress
-from asyncio import AbstractEventLoop, sleep, wait_for
+from asyncio import AbstractEventLoop, sleep, wait_for, exceptions
 from typing import Dict, Union
 from aiohttp.client import ClientSession
 from aiohttp.client_exceptions import WSServerHandshakeError
 from aiohttp.client_ws import ClientWebSocketResponse as WSConnection
 from eventemitter.emitter import EventEmitter
+
+from aminoed.http import HttpClient
 
 from .helpers.event import Event
 from .helpers.models import Auth
@@ -23,6 +25,7 @@ class AminoWebSocket:
 
         self.auth: Auth = auth
         self.emitter: EventEmitter = EventEmitter()
+        self.client: HttpClient = HttpClient()
         
         self.reconnecting: bool = None
         self.reconnect_cooldown: int = 120
@@ -37,18 +40,24 @@ class AminoWebSocket:
         self.reconnecting = True
         self._loop.create_task(self.reconnecting_task())
         
-    async def send(self, type: int, data: Dict):
-        await self._connection.send_str(json.dumps({"o": data, "t": type}))
+    async def send(self, data: Dict):
+        if "id" not in data:
+            data["id"] = "999345999"
+            
+        await self._connection.send_str(json.dumps(data))
         
+    async def post(self, type: int, data: Dict):
         data["id"] = str(random.randint(100000000,999999999))
         self.wait_responses[data["id"]] = self._loop.create_future()
+        
+        await self.send({"o": data, "t": type})
         
         try:
             response = self.wait_responses[data["id"]]
             del self.wait_responses[data["id"]]
             
             return await wait_for(response, timeout=10)
-        except TimeoutError:
+        except exceptions.TimeoutError:
             return None
 
     async def connection_reciever(self):
@@ -66,7 +75,7 @@ class AminoWebSocket:
                         
                             # context = getattr(sys.modules["aminoed"], "Event")
                             
-                            event = Event(event_session, self.auth, recieved_data["o"])       
+                            event = Event(self.client, self.auth, recieved_data["o"])       
                             self.emitter.emit(EventTypes.MESSAGE, event)
                             
                             event_type = f"{event.type}:{event.mediaType}"

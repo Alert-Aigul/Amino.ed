@@ -1,15 +1,17 @@
+from copy import copy
 from typing import Any, Optional, Union
-from aiohttp import ClientSession
 
 from ..http import HttpClient, WebHttpClient
 from .models import Auth, BaseEvent, Message
 
 class Event(BaseEvent):
-    def __init__(self, session: ClientSession, auth: Auth, data) -> None:
+    def __init__(self, client: HttpClient, auth: Auth, data) -> None:
         super().__init__(**data, **data["chatMessage"])
         
-        self.client: HttpClient = HttpClient(self.ndcId, session)
+        self.client: HttpClient = copy(client)
         self.client.auth = auth
+        self.client.ndc_id = self.ndcId
+        
         self.web: WebHttpClient = self.client.web
     
     client: Optional[Any] = None

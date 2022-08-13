@@ -26,10 +26,12 @@ class WebHttpClient:
         ndc_id: Optional[int] = None,
         sid: Optional[str] = None,
         session: Optional[ClientSession] = None,
-        connector: Optional[BaseConnector] = None
+        connector: Optional[BaseConnector] = None,
+        debug: bool = False
     ) -> None:
         self.connector: Optional[BaseConnector] = connector
         self.session: ClientSession = session or ClientSession()
+        self.debug = debug
         
         self.sid: Optional[str] = sid
         self.ndc_id: int = ndc_id or GLOBAL_ID
@@ -59,7 +61,6 @@ class WebHttpClient:
             data["ndcId"] = get_ndc(self.ndc_id)[1:-2]
 
             kwargs["data"] = json.dumps(data)
-            print(data)
         
         kwargs["headers"] = headers
         response_json: Optional[Dict] = None
@@ -70,6 +71,17 @@ class WebHttpClient:
             except ContentTypeError:
                 response_text = await response.text()
                 raise HtmlError(response_text)
+            
+            if self.debug:
+                message = f"\n\n<---REQUEST {url} START--->\n\n"
+                message += json.dumps(headers) + "\n"
+                
+                if data is not None:
+                    message += data + "\n"
+            
+                message += f"\n{response.status} {json.dumps(response_json)}\n\n"
+                message += f"<---REQUEST {url} END--->\n\n"
+                print(message, end="")
 
             if response.status != 200:
                 if not self.session.closed:
@@ -151,10 +163,12 @@ class HttpClient:
         proxy: Optional[str] = None,
         proxy_auth: Optional[BasicAuth] = None,
         timeout: Optional[int] = None,
-        connector: Optional[BaseConnector] = None
+        connector: Optional[BaseConnector] = None,
+        debug: bool = False
     ) -> None:
         self.connector: Optional[BaseConnector] = connector
         self._session: Optional[ClientSession] = session
+        self.debug = debug
 
         self.ndc_id: int = GLOBAL_ID
         self._auth: Auth = Auth(**{})
@@ -170,7 +184,6 @@ class HttpClient:
 
         user_agent = "Amino.ed Python/{0[0]}.{0[1]} Bot/{1}"
         self.user_agent: str = user_agent.format(sys.version_info, randint(1, 9*9))
-        self.user_moderation_history
         
     async def request(self, method: str, path: str, **kwargs):
         ndc_id = kwargs.pop("ndc_id", self.ndc_id)
@@ -224,6 +237,17 @@ class HttpClient:
                     raise IpTomporaryBan("403 Forbidden")
                 else:
                     raise HtmlError(response_json)
+                
+            if self.debug:
+                message = f"\n\n<---REQUEST {url} START--->\n\n"
+                message += json.dumps(headers) + "\n"
+                
+                if data is not None:
+                    message += data + "\n"
+            
+                message += f"\n{response.status} {json.dumps(response_json)}\n\n"
+                message += f"<---REQUEST {url} END--->\n\n"
+                print(message, end="")
 
             if response.status != 200:
                 if not self.session.closed:

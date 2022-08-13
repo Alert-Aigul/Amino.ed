@@ -34,9 +34,10 @@ class Client(HttpClient):
         session: Optional[ClientSession] = None,
         connector: Optional[BaseConnector] = None,
         check_updates: bool = True,
-        auth: Optional[Auth] = None
+        auth: Optional[Auth] = None, 
+        debug: bool = False
     ) -> None:
-        super().__init__(ndc_id, None, proxy, proxy_auth, timeout, connector)
+        super().__init__(ndc_id, None, proxy, proxy_auth, timeout, connector, debug)
         self._loop: Optional[AbstractEventLoop] = loop
         self._session = session
         
