@@ -313,9 +313,9 @@ class Client(HttpClient):
                     
                     self.auth = auth
                     return self.auth
-        except Exception:
+        except Exception as e:
             os.remove(".ed.cache")
-            raise Exception("Wrong cache! Restart your script.")
+            raise Exception(f"{e}\n\nWrong cache! Restart your script.")
             
         auth = await self.login(email, password, device)
         await set_cache(email, auth.dict(), is_temp)
