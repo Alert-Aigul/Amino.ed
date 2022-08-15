@@ -478,6 +478,15 @@ class CommunityDisabled(Exception):
     """
     def __init__(*args, **kwargs):
         Exception.__init__(*args, **kwargs)
+        
+class CommunityLimitReached(Exception):
+    """
+    - **API Code** : 826
+    - **API Message** : You have reached the maximum number of Communities you can join.
+    - **API String** : ``Unknown String``
+    """
+    def __init__(*args, **kwargs):
+        Exception.__init__(*args, **kwargs)
 
 
 class CommunityDeleted(Exception):
@@ -1086,6 +1095,8 @@ def CheckException(data):
         raise CommunityCreateLimitReached(data)
     elif api_code == 814:
         raise CommunityDisabled(data)
+    elif api_code == 826:
+        raise CommunityLimitReached(data)
     elif api_code == 833:
         raise CommunityDeleted(data)
     elif api_code == 1002:

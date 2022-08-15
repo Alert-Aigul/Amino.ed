@@ -120,7 +120,7 @@ class AminoWebSocket:
                 }
 
                 return await self._session.ws_connect(url, headers=headers)
-            except WSServerHandshakeError as e:
+            except WSServerHandshakeError:
                 await sleep(3)
                 await self._session.close()
         
