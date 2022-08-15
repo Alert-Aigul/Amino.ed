@@ -493,7 +493,7 @@ class HttpClient:
         return Community(**response["community"])
     
     async def get_account_communities(self, start: int = 0, size: int = 100) -> List[Community]:
-        response = await self.request("GET", f"/community/joined?v=1&start={start}&size={size}")
+        response = await self.request("GET", f"/community/joined?v=1&start={start}&size={size}", ndc_id=GLOBAL_ID)
         return list(map(lambda o: Community(**o), response["communityList"])) 
     
     async def search_community(self, amino_id: str):

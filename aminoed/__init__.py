@@ -2,7 +2,7 @@ __title__ = 'Amino.ed'
 __author__ = 'Alert Aigul'
 __license__ = 'MIT'
 __copyright__ = 'Copyright 2020-2022 Alert'
-__version__ = '2.8.4.6'
+__version__ = '2.8.4.8'
 
 from asyncio import sleep, create_task, gather
 from asyncio.events import AbstractEventLoop
@@ -56,8 +56,6 @@ def run_with_client(
             connector, 
             check_updates,
             None,
-            debug,
-            None,
             debug
         ) as client:
             await callback(client)
@@ -75,3 +73,4 @@ def run():
 import atexit
 
 atexit.register(lambda: HttpClient._session._connector._close() if HttpClient._session._connector else None)
+atexit.register(lambda: json.dump(CACHE, open(".ed.cache", "w")))
