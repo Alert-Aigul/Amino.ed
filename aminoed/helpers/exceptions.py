@@ -987,6 +987,39 @@ class InvalidChatBubble(Exception):
         Exception.__init__(*args, **kwargs)
         
         
+class UserHasBeenDeleted(Exception):
+    """
+    - **API Code** : 245
+    - **API Message** : Sorry, this user has been deleted.
+    - **API String** : ``Unknown String``
+    """
+
+    def __init__(*args, **kwargs):
+        Exception.__init__(*args, **kwargs)
+        
+
+class YouAreNotClubMember(Exception):
+    """
+    - **API Code** : 4802
+    - **API Message** : You are not a fan club member.
+    - **API String** : ``Unknown String``
+    """
+
+    def __init__(*args, **kwargs):
+        Exception.__init__(*args, **kwargs)
+        
+
+class OrganizerHasLeft(Exception):
+    """
+    - **API Code** : 1608
+    - **API Message** : Sorry, this session is closing, as the organizer has just left.
+    - **API String** : ``Unknown String``
+    """
+
+    def __init__(*args, **kwargs):
+        Exception.__init__(*args, **kwargs)
+        
+
 class HtmlError(Exception):
     pass
 
@@ -1053,6 +1086,8 @@ def CheckException(data):
         raise ReachedTitleLength(data)
     elif api_code == 241:
         raise EmailFlaggedAsSpam(data)
+    elif api_code == 245:
+        raise UserHasBeenDeleted(data)
     elif api_code == 246:
         raise AccountDeleted(data)
     elif api_code == 251:
@@ -1111,6 +1146,8 @@ def CheckException(data):
         raise ChatFull(data)
     elif api_code == 1606:
         raise TooManyInviteUsers(data)
+    elif api_code == 1608:
+        raise OrganizerHasLeft(data)
     elif api_code == 1611:
         raise ChatInvitesDisabled(data)
     elif api_code == 1612:
@@ -1159,6 +1196,8 @@ def CheckException(data):
         raise CannotSendCoins(data)
     elif api_code == 4501:
         raise CannotSendCoins(data)
+    elif api_code == 4802:
+        raise YouAreNotClubMember(data)
     elif api_code == 4805:
         raise FailedSubscribeFanClub(data)
     elif api_code == 6001:

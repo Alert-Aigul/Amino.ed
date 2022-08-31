@@ -2,16 +2,18 @@ __title__ = 'Amino.ed'
 __author__ = 'Alert Aigul'
 __license__ = 'MIT'
 __copyright__ = 'Copyright 2020-2022 Alert'
-__version__ = '2.8.4.9'
+__version__ = '2.8.4.10'
 
 from asyncio import sleep, create_task, gather
 from asyncio.events import AbstractEventLoop
+import contextlib
 from .helpers.utils import *
 
 loop = get_event_loop()
 
 from aiohttp import BaseConnector, ClientSession
 ClientSession.__del__ = lambda _: None
+BaseConnector.__del__ = lambda _: None
 
 from .http import HttpClient
 HttpClient._session = ClientSession(loop=loop)
