@@ -11,9 +11,9 @@ from base64 import urlsafe_b64decode, b64encode, urlsafe_b64encode
 
 from .models import SID
 
-PREFIX = bytes.fromhex("52")
-SIG_KEY = bytes.fromhex("EAB4F1B9E3340CD1631EDE3B587CC3EBEDF1AFA9")
-DEVICE_KEY = bytes.fromhex("AE49550458D8E7C51D566916B04888BFB8B3CA7D")
+PREFIX = bytes.fromhex("19")
+SIG_KEY = bytes.fromhex("DFA5ED192DDA6E88A12FE12130DC6206B1251E44")
+DEVICE_KEY = bytes.fromhex("E7309ECC0953C6FA60005B2765F99DBBC965C8E9")
 
 try:
     with open(".ed.cache") as file:

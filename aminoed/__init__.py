@@ -1,12 +1,13 @@
 __title__ = 'Amino.ed'
 __author__ = 'Alert Aigul'
 __license__ = 'MIT'
-__copyright__ = 'Copyright 2020-2022 Alert'
-__version__ = '2.8.4.11'
+__copyright__ = 'Copyright 2020-2023 Alert'
+__version__ = '2.8.4.12'
 
 from asyncio import sleep, create_task, gather
 from asyncio.events import AbstractEventLoop
 import contextlib
+import signal
 from .helpers.utils import *
 
 loop = get_event_loop()
@@ -16,7 +17,6 @@ ClientSession.__del__ = lambda _: None
 BaseConnector.__del__ = lambda _: None
 
 from .http import HttpClient
-HttpClient._session = ClientSession(loop=loop)
 
 from .client import Client
 from .websocket import AminoWebSocket
@@ -72,7 +72,11 @@ def run():
         loop.run_until_complete(callback())
     return start
 
-import atexit
+def _on_close():
+    if HttpClient._session._connector:
+        HttpClient._session._connector._close() 
 
-atexit.register(lambda: HttpClient._session._connector._close() if HttpClient._session._connector else None)
-atexit.register(lambda: json.dump(CACHE, open(".ed.cache", "w")))
+    json.dump(CACHE, open(".ed.cache", "w"))
+
+signal.signal(signal.SIGTERM, _on_close)
+signal.signal(signal.SIGTERM, _on_close)

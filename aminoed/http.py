@@ -14,7 +14,7 @@ from json_minify import json_minify
 from .helpers.models import *
 
 from .helpers.types import GLOBAL_ID, ChatPublishTypes, ContentTypes, FeaturedTypes, Language, ObjectTypes, PathTypes, PostTypes, RepairTypes, SourceTypes, UserTypes
-from .helpers.utils import generate_signature, generate_device, get_ndc, jsonify
+from .helpers.utils import generate_signature, generate_device, get_ndc, jsonify, update_device
 from .helpers.exceptions import CheckException, IpTomporaryBan, SpecifyType, HtmlError
 
 
@@ -156,7 +156,7 @@ class WebHttpClient:
 class HttpClient:
     URL: str = "https://service.narvii.com/"
     LANGUAGE: str = Language.ENG
-    _session: ClientSession = None
+    _session: ClientSession = ClientSession()
 
     def __init__(
         self,
@@ -174,7 +174,7 @@ class HttpClient:
 
         self.ndc_id: int = GLOBAL_ID
         self._auth: Auth = Auth(**{})
-        self.device_id: str = generate_device()
+        self._device_id: str = generate_device()
         
         if ndc_id is not None:
             self.ndc_id: int = ndc_id
@@ -306,6 +306,14 @@ class HttpClient:
     @auth.setter
     def auth(self, auth: Auth):
         self._auth = auth 
+
+    @property
+    def device_id(self):
+        return self._device_id
+
+    @device_id.setter
+    def device_id(self, device_id: str):
+        self._device_id = update_device(device_id)
 
     async def base_login(
         self, 
