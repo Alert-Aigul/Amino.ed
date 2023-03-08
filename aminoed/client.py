@@ -302,8 +302,7 @@ class Client(HttpClient):
     ) -> Auth:
         try:
             if (auth_json := await get_cache(email, False)):
-                user_profile = auth_json.pop("user")
-                auth = Auth(**auth_json, userProfile=user_profile)
+                auth = Auth(**auth_json)
                 
                 auth_json["sid"]
                 # Calling KeyError if sid not defined

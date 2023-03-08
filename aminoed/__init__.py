@@ -2,11 +2,10 @@ __title__ = 'Amino.ed'
 __author__ = 'Alert Aigul'
 __license__ = 'MIT'
 __copyright__ = 'Copyright 2020-2023 Alert'
-__version__ = '2.8.4.12'
+__version__ = '2.8.4.13'
 
 from asyncio import sleep, create_task, gather
 from asyncio.events import AbstractEventLoop
-import contextlib
 import signal
 from .helpers.utils import *
 
@@ -76,7 +75,7 @@ def _on_close():
     if HttpClient._session._connector:
         HttpClient._session._connector._close() 
 
-    json.dump(CACHE, open(".ed.cache", "w"))
+    json.dump(CACHE, open(".ed.json", "w"))
 
 signal.signal(signal.SIGTERM, _on_close)
 signal.signal(signal.SIGTERM, _on_close)

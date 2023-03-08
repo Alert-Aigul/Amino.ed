@@ -154,7 +154,7 @@ class WebHttpClient:
     
 
 class HttpClient:
-    URL: str = "https://service.narvii.com/"
+    URL: str = "https://service.aminoapps.com/"
     LANGUAGE: str = Language.ENG
     _session: ClientSession = ClientSession()
 
@@ -184,8 +184,7 @@ class HttpClient:
         self.proxy: Optional[str] = proxy
         self.proxy_auth: Optional[BasicAuth] = proxy_auth
 
-        user_agent = "Amino.ed Python/{0[0]}.{0[1]} Bot/{1}"
-        self.user_agent: str = user_agent.format(sys.version_info, randint(1, 9*9))
+        self.user_agent: str = "Apple iPhone12,1 iOS v15.5 Main/3.12.2"
         
     async def request(self, method: str, path: str, **kwargs):
         ndc_id = kwargs.pop("ndc_id", self.ndc_id)
@@ -197,15 +196,14 @@ class HttpClient:
         headers: Dict[str, str] = {
             "User-Agent": self.user_agent,
             "NDCDEVICEID": self.device_id,
-            "Accept-Language": self.LANGUAGE
+            "Accept-Language": self.LANGUAGE,
+            "Content-Type": ContentTypes.URL_ENCODED
         }
 
         if self.auth.sid is not None:
             headers["NDCAUTH"] = "sid=" + self.auth.sid
 
         if kwargs.get("json") is not None:
-            headers["Content-Type"] = ContentTypes.JSON
-
             data = kwargs.pop("json")
             data["timestamp"] = int(time() * 1000)
 
@@ -239,17 +237,6 @@ class HttpClient:
                     raise IpTomporaryBan("403 Forbidden")
                 else:
                     raise HtmlError(response_json)
-                
-            if self.debug:
-                message = f"\n\n<---REQUEST {url} START--->\n\n"
-                message += json.dumps(headers) + "\n"
-                
-                if data is not None:
-                    message += data + "\n"
-            
-                message += f"\n{response.status} {json.dumps(response_json)}\n\n"
-                message += f"<---REQUEST {url} END--->\n\n"
-                print(message, end="")
                 
             if self.debug:
                 message = f"\n\n<---REQUEST {url} START--->\n\n"
@@ -1996,7 +1983,7 @@ class HttpClient:
         return response
 
     async def remove_influencer(self, userId: str):
-        response = self.request("DELETE", f"/influencer/{userId}")
+        response = await self.request("DELETE", f"/influencer/{userId}")
         return response
     
     # TODO : Finish it
